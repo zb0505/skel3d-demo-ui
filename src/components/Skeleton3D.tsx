@@ -38,16 +38,19 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	// Prepare canvas and 3D library
 	componentDidMount(): void {
 		// Prepare scene and renderer
+		const height = window.innerHeight - 300, width = window.innerWidth - 100
 		const elem = this.canvas = document.querySelector("canvas#skeleton") as HTMLCanvasElement
 		const scene = this.scene = new Three.Scene()
 		const light = this.light = new Three.AmbientLight()
-		const camera = this.camera = new Three.PerspectiveCamera(75, 1, 0.1, 1000)
+		const camera = this.camera = new Three.PerspectiveCamera(75, width / height, 0.1, 1000)
 		const renderer = this.mainRenderer = new Three.WebGLRenderer({ canvas: elem, antialias: true })
 		this.exportRenderer = new Three.WebGLRenderer({ canvas: elem, antialias: true, preserveDrawingBuffer: true })
 		const controls = this.controls = new OrbitControls(camera, elem)
 		
 		// Component settings
-		renderer.setSize(elem.clientWidth, elem.clientHeight)
+		camera.zoom = 2
+		renderer.setSize(width, height)
+		camera.updateProjectionMatrix()
 		scene.background = new Three.Color("wheat")
 		controls.enablePan = false
 		controls.update()
@@ -129,13 +132,9 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	render(): ReactNode {
 		const btnDisabled = this.props.loading || !this.state.skeletonData || this.state.skeletonData.length < 1
 		return (
-			<div className="col placeholder-glow">
+			<div className="d-flex flex-column placeholder-glow">
 				<h4 className="mb-2">3D skeleton for pose selection</h4>
-				<canvas id="skeleton" className={(!this.state.skeletonData ? "placeholder " : "") + "rounded mx-2"}
-					style={{
-						width: "400px",
-						height: "400px"
-					}} />
+				<canvas id="skeleton" className={(!this.state.skeletonData ? "placeholder " : "") + "rounded mx-2"} />
 				<button className="btn btn-primary mt-2" disabled={btnDisabled} onClick={() => this.generateClicked()}>Generate</button>
 			</div>
 		)

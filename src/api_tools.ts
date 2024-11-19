@@ -85,7 +85,8 @@ export default class API {
 		return fetch(apiUrl + path, {
 			headers: { "Content-Type": "application/json" },
 			method: "POST", body: JSON.stringify(body)
-		}).then(async r => ({ status: r.status, json: await r.json() })) as any
+		}).then(async r => r.ok ? { status: r.status, json: await r.json() } : null)
+		.catch(err => console.error("API fetch failed:", err)) as any
 	}
 
 	/**

@@ -92,7 +92,16 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 
 			// Add point to list
 			const scaleX = image.naturalWidth / image.offsetWidth, scaleY = image.naturalHeight / image.offsetHeight
-			const coords = [(event.clientX - image.offsetLeft) * scaleX, (event.clientY - image.offsetTop) * scaleY].map(Math.round) as Point
+			const coords = [(event.x - image.offsetLeft) * scaleX, (event.y - image.offsetTop) * scaleY].map(Math.round) as Point
+			console.log("[KeypointMarker] Image info:",
+				`\n  Size: ${image.offsetWidth}x${image.offsetHeight}`,
+				`\n  Offset: ${image.offsetLeft}x${image.offsetTop}`,
+				`\n  Original: ${image.naturalWidth}x${image.naturalHeight}`,
+				`\n  Scale: ${scaleX} x ${scaleY}`,
+				`\n  Event coords: ${event.x}x${event.y}`,
+				`\n  Coords:`, [event.x - image.offsetLeft, event.y - image.offsetTop],
+				`\n  Scaled coords:`, coords
+			)
 			// If the point is already in the list, ignore it
 			if ([...this.positive, ...this.negative].some(p => p[0] === coords[0] && p[1] === coords[1])) return
 			// Otherwise add the point

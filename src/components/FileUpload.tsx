@@ -76,40 +76,44 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	// Markup
 	render(): ReactNode {
 		return (
-			<div className="col">
-				<h4 className="form-label m-0 mb-2">Input image</h4>
-				<div className="input-container">
-					<input className="form-control mb-3" type="file" id="input" accept="image/jpeg, image/png" />
-					<KeypointMarker currentImage={this.state.inputUrl} onPreviewUpdated={preview => this.updateState({ preview })}>
-						<img id="preview" className="preview" src={this.state.preview || this.state.inputUrl || "/src/assets/transparent.png"} />
-					</KeypointMarker>
+			<div className="d-flex flex-column flex-lg-row justify-content-between">
+				<div className="flex-fill">
+					<h4 className="form-label m-0 mb-2">Input image</h4>
+					<div className="input-container">
+						<input className="form-control mb-3" type="file" id="input" accept="image/jpeg, image/png" />
+						<KeypointMarker currentImage={this.state.inputUrl} onPreviewUpdated={preview => this.updateState({ preview })}>
+							<img id="preview" className="preview" src={this.state.preview || this.state.inputUrl || "/src/assets/transparent.png"} />
+						</KeypointMarker>
+					</div>
 				</div>
-				<h5 className="form-label m-0 my-2">Keypoints</h5>
-				<div className="table-responsive keypoints">
-					<table className="table table-striped">
-						<thead>
-							<tr>
-								<th className="text-start">
-									<input className="form-control" placeholder="Keypoint" value={this.state.kpInput} onChange={e => this.updateState({ kpInput: e.target.value })} />
-								</th>
-								<th className="text-center">
-									<button className="btn btn-outline-success" onClick={this.addKeypoint.bind(this)}><i className="fa-solid fa-plus"></i></button>
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{ this.state.keypoints.map((kp, i) =>
-								<tr key={i}>
-									<td className="text-start">
-										<input className="form-control" value={kp} onChange={e => this.changeKeypoint(i, e.target.value)} />
-									</td>
-									<td className="text-center">
-										<button className="btn btn-ghost text-danger" onClick={() => this.removeKeypoint(i)}><i className="fa-solid fa-circle-xmark"></i></button>
-									</td>
+				<div className="flex-fill ms-2 mw-50">
+					<h5 className="form-label m-0 my-2">Keypoints</h5>
+					<div className="table-responsive keypoints">
+						<table className="table table-striped">
+							<thead>
+								<tr>
+									<th className="text-start">
+										<input className="form-control" placeholder="Keypoint" value={this.state.kpInput} onChange={e => this.updateState({ kpInput: e.target.value })} />
+									</th>
+									<th className="text-center">
+										<button className="btn btn-outline-success" onClick={this.addKeypoint.bind(this)}><i className="fa-solid fa-plus"></i></button>
+									</th>
 								</tr>
-							) }
-						</tbody>
-					</table>
+							</thead>
+							<tbody>
+								{ this.state.keypoints.map((kp, i) =>
+									<tr key={i}>
+										<td className="text-start">
+											<input className="form-control" value={kp} onChange={e => this.changeKeypoint(i, e.target.value)} />
+										</td>
+										<td className="text-center">
+											<button className="btn btn-ghost text-danger" onClick={() => this.removeKeypoint(i)}><i className="fa-solid fa-circle-xmark"></i></button>
+										</td>
+									</tr>
+								) }
+							</tbody>
+						</table>
+					</div>
 				</div>
 			</div>
 		)

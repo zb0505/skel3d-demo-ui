@@ -11,7 +11,12 @@ import { updateTooltips } from "./api_tools"
 interface AppState {
 	inFile: File | null
 	skelFile: Blob | null
-	loading: boolean
+	loading: boolean,
+	forwardBtn: {
+		text: string,
+		enabled: boolean,
+		click: () => void
+	}
 }
 
 
@@ -27,7 +32,12 @@ export default class App extends Component<{}, AppState> {
 		this.state = this.stateCopy = {
 			inFile: null,
 			skelFile: null,
-			loading: false
+			loading: false,
+			forwardBtn: {
+				text: "Next",
+				enabled: true,
+				click: () => {}
+			}
 		}
 	}
 
@@ -35,6 +45,11 @@ export default class App extends Component<{}, AppState> {
 	private updateState(newState: Partial<AppState>) {
 		this.stateCopy = { ...this.stateCopy, ...newState }
 		this.setState(this.stateCopy)
+	}
+
+	// Update forward button state
+	private updateForwardBtn(newState: Partial<AppState["forwardBtn"]>) {
+		this.updateState({ forwardBtn: { ...this.stateCopy.forwardBtn, ...newState } })
 	}
 
 	// Update tooltips on the page
@@ -46,12 +61,30 @@ export default class App extends Component<{}, AppState> {
 	render(): ReactNode {
 		return (<>
 			<h1 className="mb-5">Skel3D demo</h1>
-			<div className="d-flex flex-column flex-lg-row justify-content-between">
-				<FileUpload onFileReady={file => this.updateState({ inFile: file })} />
-				<Skeleton3D file={this.state.inFile} loading={this.state.loading}
-					setLoading={loading => this.updateState({ loading })}
-					onGenerateClicked={file => this.updateState({ skelFile: file })} />
-				<DemoOutput loading={this.state.loading} inFile={this.state.inFile} skelFile={this.state.skelFile} />
+			<div id="main" className="carousel slide">
+				<div className="carousel-inner main-content">
+					<div className="carousel-item active">
+						<FileUpload onFileReady={file => this.updateState({ inFile: file })} />
+					</div>
+					<div className="carousel-item">
+						<Skeleton3D file={this.state.inFile} loading={this.state.loading}
+							setLoading={loading => this.updateState({ loading })}
+							onGenerateClicked={file => this.updateState({ skelFile: file })} />
+					</div>
+					<div className="carousel-item">
+						<DemoOutput loading={this.state.loading} inFile={this.state.inFile} skelFile={this.state.skelFile} />
+					</div>
+				</div>
+				{/* TODO: remember states unless something changes in previous steps, then forget all steps after that */}
+				<div className="d-flex flex-row justify-content-between fixed-bottom mx-3 mb-3">
+					<button className="btn btn-secondary" type="button" data-bs-target="#main" data-bs-slide="prev">
+						Previous
+					</button>
+					<button className="btn btn-primary" type="button" data-bs-target="#main" data-bs-slide="next"
+						onClick={this.state.forwardBtn.click}>
+						{this.state.forwardBtn.text}
+					</button>
+				</div>
 			</div>
 		</>)
 	}

@@ -8,14 +8,13 @@
 
 /* Preview image styles */
 .preview, .output {
-	width: 60%;
+	width: 80%;
 	border: 1px solid gray;
 	border-radius: 10px;
 }
-@media screen and (max-width: 800px) {
+@media screen and (max-width: 992px) {
 	.preview, .output {
-		width: auto;
-		height: 60%;
+		width: 90%;
 	}
 }
 .preview[src=""], .output[src=""] {
@@ -24,9 +23,18 @@
 	aspect-ratio: 1;
 }
 
+/* Main content area */
+.main-content {
+	max-height: 80vh;
+	overflow-y: auto;
+}
+
 /* Keypoint container below preview image */
 .keypoints {
 	height: 40%;
+}
+.mw-50 {
+	min-width: 50%;
 }
 
 /* Keypoint marker on image */

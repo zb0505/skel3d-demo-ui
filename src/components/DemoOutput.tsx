@@ -41,7 +41,7 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 		return (
 			<div className="col">
 				<h4 className="mb-2">Model output</h4>
-				<img id="output" src={this.state.outputUrl} className={(this.props.loading ? "placeholder " : "") + "bordered rounded output"}></img>
+				<img id="output" src={this.state.outputUrl || "/src/assets/transparent.png"} className={(this.props.loading ? "placeholder " : "") + "bordered rounded output"}></img>
 			</div>
 		)
 	}
