@@ -29,7 +29,10 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 
 	// Query API when both input files are ready
 	async componentDidUpdate(prevProps: Readonly<DemoOutputProps>, _prevState: Readonly<DemoOutputState>, _snapshot?: any): Promise<void> {
-		if (prevProps === this.props) return // Ignore state changes
+		// Ignore state changes
+		if (prevProps === this.props) return
+
+		// If both files are ready, make API call
 		if (this.filesReady()) {
 			// TODO: image generator API call here
 		}

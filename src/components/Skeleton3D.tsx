@@ -3,14 +3,18 @@ import * as Three from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
 import { dataUrlToBlob } from "../api_tools"
+import { AppState } from "../App"
 
 
 // Component props and states
 interface Skeleton3DProps {
-	file: File | null
-	onGenerateClicked: (skelImg: Blob) => void
-	loading: boolean
-	setLoading: (loading: boolean) => void
+	file: File | null,
+	loading: boolean,
+	reset: boolean,
+	step: number,
+	setLoading: (loading: boolean) => void,
+	onGenerateClicked: (skelImg: Blob) => void,
+	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
 }
 interface Skeleton3DState {
 	skeletonData: number[][] | null
@@ -95,7 +99,16 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 
 	// File change listener
 	componentDidUpdate(prevProps: Readonly<Skeleton3DProps>, _prevState: Readonly<Skeleton3DState>, _snapshot?: any): void {
-		if (prevProps.file === this.props.file) return // Ignore state changes
+		// Ignore state changes
+		if (prevProps.file === this.props.file && prevProps.reset === this.props.reset && prevProps.step === this.props.step) return
+
+		// Update forward button
+		if (this.props.step === 1) this.props.updateForwardBtn({
+			text: "Generate",
+			enabled: true,
+			click: this.generateClicked.bind(this)
+		})
+		
 		// TODO: do API call and set skeleton data
 	}
 

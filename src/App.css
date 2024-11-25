@@ -8,7 +8,7 @@
 
 /* Preview image styles */
 .preview, .output {
-	width: 80%;
+	width: 70%;
 	border: 1px solid gray;
 	border-radius: 10px;
 }
@@ -18,8 +18,8 @@
 	}
 }
 .preview[src=""], .output[src=""] {
-	width: 60%;
-	height: 60%;
+	width: 50%;
+	height: 50%;
 	aspect-ratio: 1;
 }
 

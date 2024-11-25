@@ -1,18 +1,21 @@
 import { Component, ReactNode } from "react"
 import { fileToDataUrl, updateTooltips } from "../api_tools"
 import KeypointMarker from "./KeypointMarker"
+import { AppState } from "../App"
 
 
 // Component props and states
 interface FileUploadProps {
-	onFileReady: (file: File | null, keypoints: string) => void
+	step: number,
+	reset: boolean,
+	onFileReady: (file: File | null, keypoints: string) => void,
+	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
 }
 
 interface FileUploadState {
 	inputUrl: string,
 	preview: string,
-	kpInput: string,
-	keypoints: string[]
+	keypoints: string
 }
 
 
@@ -26,8 +29,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		this.state = this.stateCopy = {
 			inputUrl: "",
 			preview: "",
-			kpInput: "",
-			keypoints: []
+			keypoints: ""
 		}
 	}
 
@@ -35,15 +37,26 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	private updateState(newState: Partial<FileUploadState>) {
 		this.stateCopy = { ...this.stateCopy, ...newState }
 		this.setState(this.stateCopy)
+
+		// Update forward button state
+		this.props.updateForwardBtn({
+			enabled: !!(this.stateCopy.inputUrl && this.stateCopy.preview && this.stateCopy.keypoints)
+		})
 	}
 
 	// Component rendered event
 	componentDidMount(): void {
 		// Update tooltips
 		updateTooltips()
+
+		// Update forward button
+		this.props.updateForwardBtn({
+			text: "Next",
+			enabled: false
+		})
 		
 		// Listen to file upload events
-		const input = document.querySelector("input#input") as HTMLInputElement
+		const input = document.querySelector("#inputImg") as HTMLInputElement
 		input.addEventListener("change", async () => {
 			if (!input.files?.length) return this.updateState({ inputUrl: "" })
 
@@ -52,25 +65,28 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		})
 	}
 
-	// Add new keypoint
-	private addKeypoint() {
-		const keypoints = this.stateCopy.keypoints
-		keypoints.push(this.state.kpInput)
-		this.updateState({ keypoints, kpInput: "" })
-	}
+	// Component updated event
+	componentDidUpdate(prevProps: Readonly<FileUploadProps>, _prevState: Readonly<FileUploadState>, _snapshot?: any): void {
+		// Ignore all changes except for reset and step props
+		if (prevProps.reset === this.props.reset && prevProps.step === this.props.step) return
 
-	// Change keypoint description
-	private changeKeypoint(idx: number, value: string) {
-		const keypoints = this.stateCopy.keypoints
-		keypoints[idx] = value
-		this.updateState({ keypoints })
-	}
+		// Handle resetting data
+		if (this.props.reset) {
+			(document.querySelector("#inputImg") as HTMLInputElement).value = ""
+			this.updateState({
+				inputUrl: "",
+				preview: "",
+				keypoints: ""
+			})
+		}
 
-	// Remove keypoint by index
-	private removeKeypoint(index: number) {
-		const keypoints = this.stateCopy.keypoints
-		keypoints.splice(index, 1)
-		this.updateState({ keypoints })
+		// Handle step change
+		else if (this.props.step === 0) {
+			this.props.updateForwardBtn({
+				text: "Next",
+				enabled: !!(this.stateCopy.inputUrl && this.stateCopy.preview && this.stateCopy.keypoints)
+			})
+		}
 	}
 
 	// Markup
@@ -80,40 +96,19 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 				<div className="flex-fill">
 					<h4 className="form-label m-0 mb-2">Input image</h4>
 					<div className="input-container">
-						<input className="form-control mb-3" type="file" id="input" accept="image/jpeg, image/png" />
+						<input className="form-control mb-3" type="file" id="inputImg" accept="image/jpeg, image/png" />
 						<KeypointMarker currentImage={this.state.inputUrl} onPreviewUpdated={preview => this.updateState({ preview })}>
 							<img id="preview" className="preview" src={this.state.preview || this.state.inputUrl || "/src/assets/transparent.png"} />
 						</KeypointMarker>
 					</div>
 				</div>
-				<div className="flex-fill ms-2 mw-50">
+				<div className="flex-fill ms-5 mw-50">
 					<h5 className="form-label m-0 my-2">Keypoints</h5>
-					<div className="table-responsive keypoints">
-						<table className="table table-striped">
-							<thead>
-								<tr>
-									<th className="text-start">
-										<input className="form-control" placeholder="Keypoint" value={this.state.kpInput} onChange={e => this.updateState({ kpInput: e.target.value })} />
-									</th>
-									<th className="text-center">
-										<button className="btn btn-outline-success" onClick={this.addKeypoint.bind(this)}><i className="fa-solid fa-plus"></i></button>
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{ this.state.keypoints.map((kp, i) =>
-									<tr key={i}>
-										<td className="text-start">
-											<input className="form-control" value={kp} onChange={e => this.changeKeypoint(i, e.target.value)} />
-										</td>
-										<td className="text-center">
-											<button className="btn btn-ghost text-danger" onClick={() => this.removeKeypoint(i)}><i className="fa-solid fa-circle-xmark"></i></button>
-										</td>
-									</tr>
-								) }
-							</tbody>
-						</table>
-					</div>
+					<p className="mb-2 text-start">List all keypoints separated via commas as in the placeholder.</p>
+					<textarea className="form-control mb-2" rows={10} style={{ resize: "none" }}
+						value={this.state.keypoints} onChange={e => this.updateState({ keypoints: e.target.value })}
+						placeholder="head, body, left elbow, left hand, right elbow, right hand, hips, left knee, left foot, right knee, right foot" />
+					<button className="btn btn-primary" onClick={() => this.updateState({ keypoints: document.querySelector("textarea")?.placeholder || "" })}>Use placeholder</button>
 				</div>
 			</div>
 		)
