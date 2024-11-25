@@ -17,7 +17,6 @@ interface KeypointMarkerStates {
 // Keypoint marker class
 export default class KeypointMarker extends Component<KeypointMarkerProps, KeypointMarkerStates> {
 	// Fields
-	private stateCopy: KeypointMarkerStates
 	private markerTimeout: ReturnType<typeof setTimeout> | null = null
 	private activeApiCall: Promise<any> | null = null
 	private container: HTMLDivElement | null = null
@@ -28,19 +27,39 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	// Constructor
 	constructor(props: KeypointMarkerProps) {
 		super(props)
-		this.state = this.stateCopy = { markerType: "pos" }
+		this.state = { markerType: "pos" }
 	}
 
-	// Update state
-	private updateState(newState: Partial<KeypointMarkerStates>) {
-		this.stateCopy = { ...this.stateCopy, ...newState }
-		this.setState(this.stateCopy)
+	// Get image true position relative to the viewport
+	private getImagePosition(image: HTMLImageElement) {
+		const box = image.getBoundingClientRect()
+		return {
+			width: Math.round(box.width),
+			height: Math.round(box.height),
+			left: Math.round(box.left),
+			top: Math.round(box.top),
+			right: Math.round(box.right),
+			bottom: Math.round(box.bottom),
+			x: Math.round(box.x),
+			y: Math.round(box.y)
+		}
 	}
 
 	// Validate point location
 	private validatePoint(point: number[], image: HTMLImageElement): boolean {
-		const imgLeft = image.offsetLeft, imgRight = imgLeft + image.offsetWidth
-		const imgTop = image.offsetTop, imgBottom = imgTop + image.offsetHeight
+		const box = this.getImagePosition(image)
+		const imgLeft = box.left, imgRight = box.right
+		const imgTop = box.top, imgBottom = box.bottom
+		console.log("[KeypointMarker] Image props:",
+			`\n  HTML size: ${image.offsetWidth}x${image.offsetHeight}`,
+			`\n  Orig size: ${image.naturalWidth}x${image.naturalHeight}`,
+			"\n  Position:",
+			"\n    Left:", imgLeft,
+			"\n    Right:", imgRight,
+			"\n    Top:", imgTop,
+			"\n    Bottom:", imgBottom,
+			"\n  Point:", point,
+		)
 		return imgLeft <= point[0] && imgRight >= point[0] && imgTop <= point[1] && imgBottom >= point[1]
 	}
 
@@ -85,21 +104,22 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			if (!this.props.currentImage) return
 			
 			// Check if point location is valid
-			if (!this.validatePoint([event.clientX, event.clientY], image)) return
+			if (!this.validatePoint([event.x, event.y], image)) return
 
 			// Check if there's an active API query
 			if (this.activeApiCall) return
 
 			// Add point to list
+			const box = this.getImagePosition(image)
 			const scaleX = image.naturalWidth / image.offsetWidth, scaleY = image.naturalHeight / image.offsetHeight
-			const coords = [(event.x - image.offsetLeft) * scaleX, (event.y - image.offsetTop) * scaleY].map(Math.round) as Point
+			const coords = [(event.x - box.left) * scaleX, (event.y - box.top) * scaleY].map(Math.round) as Point
 			console.log("[KeypointMarker] Image info:",
 				`\n  Size: ${image.offsetWidth}x${image.offsetHeight}`,
-				`\n  Offset: ${image.offsetLeft}x${image.offsetTop}`,
+				`\n  Offset: ${box.left}x${box.top}`,
 				`\n  Original: ${image.naturalWidth}x${image.naturalHeight}`,
 				`\n  Scale: ${scaleX} x ${scaleY}`,
 				`\n  Event coords: ${event.x}x${event.y}`,
-				`\n  Coords:`, [event.x - image.offsetLeft, event.y - image.offsetTop],
+				`\n  Coords:`, [event.x - box.left, event.y - box.top],
 				`\n  Scaled coords:`, coords
 			)
 			// If the point is already in the list, ignore it
