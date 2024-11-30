@@ -1,5 +1,5 @@
 import React, { Component, ReactNode } from "react"
-import API, { Point } from "../api_tools"
+import API, { Point, updateTooltips } from "../api_tools"
 import makeToast from "../toast_tools"
 
 
@@ -96,6 +96,10 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 
 	// Component rendered event
 	componentDidMount(): void {
+		// Update tooltips
+		updateTooltips()
+		
+		// Containers and image
 		const marker = document.querySelector("div.kp-marker") as HTMLDivElement
 		const container = this.container = marker.querySelector(".container") as HTMLDivElement
 		const image = this.image = document.querySelector("#preview") as HTMLImageElement
@@ -160,13 +164,18 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 				<div className="container"></div>
 			</div>
 			<div className="mt-2">
-				<button className={"btn btn-outline-success me-2" + (this.state.markerType === "pos" ? " active" : "")} onClick={() => this.setState({ markerType: "pos" })}>
+				<button className={"btn btn-outline-success me-2" + (this.state.markerType === "pos" ? " active" : "")}
+					data-bs-toggle="tooltip" data-bs-title="Positive point marker"
+					onClick={() => this.setState({ markerType: "pos" })}>
 					<i className="fa-solid fa-plus"></i>
 				</button>
-				<button className={"btn btn-outline-danger me-2" + (this.state.markerType === "neg" ? " active" : "")} onClick={() => this.setState({ markerType: "neg" })}>
+				<button className={"btn btn-outline-danger me-2" + (this.state.markerType === "neg" ? " active" : "")}
+					data-bs-toggle="tooltip" data-bs-title="Negative point marker"
+					onClick={() => this.setState({ markerType: "neg" })}>
 					<i className="fa-solid fa-minus"></i>
 				</button>
-				<button className="btn btn-ghost text-danger" onClick={() => this.removePoints()}>
+				<button className="btn btn-ghost text-danger" onClick={() => this.removePoints()}
+					data-bs-toggle="tooltip" data-bs-title="Delete points">
 					<i className="fa-solid fa-trash"></i>
 				</button>
 			</div>
