@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from "react"
 import API, { Point } from "../api_tools"
+import makeToast from "../toast_tools"
 
 
 // Component props and states
@@ -75,6 +76,8 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			.then(output => {
 				console.log("[KeypointMarker] Output length:", output.length)
 				this.props.onPreviewUpdated(output)
+				if (!output) makeToast("Failed to create segmentation", "fail")
+				else makeToast("Segmentation successful", "success")
 				console.log("[KeypointMarker] Segmentation complete")
 				this.image?.classList.remove("placeholder")
 				this.activeApiCall = null

@@ -79,7 +79,7 @@ export default class API {
 	static apiURL: string = import.meta.env.API_URL || "http://localhost:8000"
 
 	/** Fetches the requested resource */
-	private static fetch<P extends keyof APIInputs>(path: P, body: APIInputs[P]): Promise<APIResponse<P>> {
+	private static fetch<P extends keyof APIInputs>(path: P, body: APIInputs[P]): Promise<APIResponse<P> | undefined | null> {
 		(path as string) = path.startsWith("/") ? path : `/${path}`
 		const apiUrl = this.apiURL.replace(/\/$/, "")
 		return fetch(apiUrl + path, {
@@ -97,7 +97,7 @@ export default class API {
 	 */
 	public static async segmentate(image: string, points: SupportPoints): Promise<string> {
 		const resp = await this.fetch("/segmentate", { image, points })
-		if (resp.status !== 200) return ""
+		if (resp?.status !== 200) return ""
 		return resp.json.segmentation
 	}
 
@@ -109,7 +109,7 @@ export default class API {
 	 */
 	public static async skeleton(image: string, keypoints: string[]): Promise<string> {
 		const resp = await this.fetch("/skeleton", { image, keypoints })
-		if (resp.status !== 200) return ""
+		if (resp?.status !== 200) return ""
 		return resp.json.skeleton
 	}
 
@@ -121,7 +121,7 @@ export default class API {
 	 */
 	public static async skel3D(image: string, skeleton: string): Promise<string> {
 		const resp = await this.fetch("/skel3d", { image, skeleton })
-		if (resp.status !== 200) return ""
+		if (resp?.status !== 200) return ""
 		return resp.json.prediction
 	}
 }
