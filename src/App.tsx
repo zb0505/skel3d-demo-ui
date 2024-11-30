@@ -106,7 +106,8 @@ export default class App extends Component<{}, AppState> {
 							onGenerateClicked={file => this.updateState({ skelFile: file })} />
 					</div>
 					<div className="carousel-item">
-						<DemoOutput loading={this.state.loading} inFile={this.state.inFile} skelFile={this.state.skelFile} />
+						<DemoOutput loading={this.state.loading} inFile={this.state.inFile} skelFile={this.state.skelFile}
+							step={this.state.step} updateForwardBtn={this.updateForwardBtn.bind(this)} />
 					</div>
 				</div>
 				{/* TODO: remember states unless something changes in previous steps, then forget all steps after that */}

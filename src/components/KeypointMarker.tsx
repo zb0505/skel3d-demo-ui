@@ -77,7 +77,6 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 				console.log("[KeypointMarker] Output length:", output.length)
 				this.props.onPreviewUpdated(output)
 				if (!output) makeToast("Failed to create segmentation", "fail")
-				else makeToast("Segmentation successful", "success")
 				console.log("[KeypointMarker] Segmentation complete")
 				this.image?.classList.remove("placeholder")
 				this.activeApiCall = null

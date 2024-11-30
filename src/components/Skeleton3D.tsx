@@ -103,9 +103,10 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		if (prevProps.file === this.props.file && prevProps.reset === this.props.reset && prevProps.step === this.props.step) return
 
 		// Update forward button
+		const btnDisabled = this.props.loading || !this.state.skeletonData || this.state.skeletonData.length < 1
 		if (this.props.step === 1) this.props.updateForwardBtn({
 			text: "Generate",
-			enabled: true,
+			enabled: true || !btnDisabled,
 			click: this.generateClicked.bind(this)
 		})
 		
@@ -143,12 +144,10 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	
 	// Markup
 	render(): ReactNode {
-		const btnDisabled = this.props.loading || !this.state.skeletonData || this.state.skeletonData.length < 1
 		return (
 			<div className="d-flex flex-column placeholder-glow">
 				<h4 className="mb-2">3D skeleton for pose selection</h4>
 				<canvas id="skeleton" className={(!this.state.skeletonData ? "placeholder " : "") + "rounded mx-2"} />
-				<button className="btn btn-primary mt-2" disabled={btnDisabled} onClick={() => this.generateClicked()}>Generate</button>
 			</div>
 		)
 	}

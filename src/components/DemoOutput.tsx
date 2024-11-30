@@ -1,12 +1,15 @@
 import { Component, ReactNode } from "react"
 import { fileToDataUrl } from "../api_tools"
+import { AppState } from "../App"
 
 
 // Component props and states
 interface DemoOutputProps {
 	inFile: File | null
 	skelFile: Blob | null
-	loading: boolean
+	loading: boolean,
+	step: number,
+	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
 }
 
 interface DemoOutputState {
@@ -32,9 +35,13 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 		// Ignore state changes
 		if (prevProps === this.props) return
 
+		// Update forward button
+		if (prevProps.step !== this.props.step && this.props.step === 2) this.props.updateForwardBtn({ enabled: false })
+
 		// If both files are ready, make API call
 		if (this.filesReady()) {
 			// TODO: image generator API call here
+			this.props.updateForwardBtn({ enabled: true })
 		}
 		this.setState({ outputUrl: this.props.inFile ? await fileToDataUrl(this.props.inFile) : "" })
 	}
