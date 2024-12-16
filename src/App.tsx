@@ -10,7 +10,7 @@ import "./App.css"
 
 // App states
 export interface AppState {
-	inFile: File | null,
+	inFile: Blob | null,
 	skelFile: Blob | null,
 	loading: boolean,
 	reset: boolean,
@@ -54,7 +54,7 @@ export default class App extends Component<{}, AppState> {
 
 	// Update forward button state
 	private updateForwardBtn(newState: Partial<AppState["forwardBtn"]>) {
-		console.log("Forward btn updated:", newState)
+		console.log("[App] Forward btn updated:", newState)
 		this.updateState({ forwardBtn: { ...this.stateCopy.forwardBtn, ...newState } })
 	}
 

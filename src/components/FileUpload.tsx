@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react"
-import { fileToDataUrl, updateTooltips } from "../api_tools"
+import { dataUrlToBlob, fileToDataUrl, updateTooltips } from "../api_tools"
 import KeypointMarker from "./KeypointMarker"
 import { AppState } from "../App"
 
@@ -8,7 +8,7 @@ import { AppState } from "../App"
 interface FileUploadProps {
 	step: number,
 	reset: boolean,
-	onFileReady: (file: File | null, keypoints: string) => void,
+	onFileReady: (file: Blob | null, keypoints: string) => void,
 	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
 }
 
@@ -21,11 +21,20 @@ interface FileUploadState {
 
 // File upload class
 export default class FileUpload extends Component<FileUploadProps, FileUploadState> {
+	// Singleton instance
+	private static instance: FileUpload | null = null
+	public static getInstance(): FileUpload | null {
+		return FileUpload.instance
+	}
+	
+	// Fields
 	private stateCopy: FileUploadState
+	private readonly kpExample = "head\nbody\nleft elbow\n- left hand\nright elbow\n- right hand\nhips\n- left knee\n-- left foot\n- right knee\n-- right foot"
 	
 	// Constructor
 	constructor(props: FileUploadProps) {
 		super(props)
+		FileUpload.instance = this
 		this.state = this.stateCopy = {
 			inputUrl: "",
 			preview: "",
@@ -66,9 +75,13 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	}
 
 	// Component updated event
-	componentDidUpdate(prevProps: Readonly<FileUploadProps>, _prevState: Readonly<FileUploadState>, _snapshot?: any): void {
-		// Ignore all changes except for reset and step props
-		if (prevProps.reset === this.props.reset && prevProps.step === this.props.step) return
+	componentDidUpdate(prevProps: Readonly<FileUploadProps>, prevState: Readonly<FileUploadState>, _snapshot?: any): void {
+		// Ignore all changes except for reset and step props and preview state
+		if (
+			prevProps.reset === this.props.reset &&
+			prevProps.step === this.props.step &&
+			prevState.preview === this.state.preview
+		) return
 
 		// Handle resetting data
 		if (this.props.reset) {
@@ -87,6 +100,9 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 				enabled: !!(this.stateCopy.inputUrl && this.stateCopy.preview && this.stateCopy.keypoints)
 			})
 		}
+
+		// Handle preview update
+		if (prevState.preview !== this.state.preview) this.props.onFileReady(dataUrlToBlob(this.state.preview), this.state.keypoints)
 	}
 
 	// Markup
@@ -104,11 +120,14 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 				</div>
 				<div className="flex-fill ms-5 mw-50">
 					<h5 className="form-label m-0 my-2">Keypoints</h5>
-					<p className="mb-2 text-start">List all keypoints separated via commas as in the placeholder.</p>
+					<p className="mb-2 text-start">
+						List all keypoints in order and adjust connections with the number of dashes.
+						Click the button below to see the example.
+					</p>
 					<textarea className="form-control mb-2" rows={10} style={{ resize: "none" }}
 						value={this.state.keypoints} onChange={e => this.updateState({ keypoints: e.target.value })}
 						placeholder="head, body, left elbow, left hand, right elbow, right hand, hips, left knee, left foot, right knee, right foot" />
-					<button className="btn btn-primary" onClick={() => this.updateState({ keypoints: document.querySelector("textarea")?.placeholder || "" })}>Use placeholder</button>
+					<button className="btn btn-primary" onClick={() => this.updateState({ keypoints: this.kpExample })}>Use example</button>
 				</div>
 			</div>
 		)

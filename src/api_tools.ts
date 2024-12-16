@@ -1,7 +1,7 @@
 import * as bootstrap from "bootstrap"
 
 // Read file as data URL and display preview
-export function fileToDataUrl(file: File): Promise<string> {
+export function fileToDataUrl(file: File | Blob): Promise<string> {
 	return new Promise(resolve => {
 		const reader = new FileReader()
 		reader.addEventListener("load", event => resolve(event.target?.result as string))
@@ -50,8 +50,8 @@ interface Skel3DInput {
 }
 
 // Model responses
-interface SAM2Response { segmentation: string }
-interface CapeXResponse { skeleton: string }
+interface SAM2Response { segmentation: string, preview: string }
+interface CapeXResponse { skeleton: [x: number, y: number, z: number][] }
 interface Skel3DResponse { prediction: string }
 
 // API endpoint definitions
@@ -95,21 +95,21 @@ export default class API {
 	 * @param points Support points for SAM2
 	 * @returns The segmentation image as base64
 	 */
-	public static async segmentate(image: string, points: SupportPoints): Promise<string> {
+	public static async segmentate(image: string, points: SupportPoints): Promise<SAM2Response> {
 		const resp = await this.fetch("/segmentate", { image, points })
-		if (resp?.status !== 200) return ""
-		return resp.json.segmentation
+		if (resp?.status !== 200) return { segmentation: "", preview: "" }
+		return resp.json
 	}
 
 	/**
 	 * Creates a 3D skeleton for the given image
 	 * @param image The input image as base64
 	 * @param keypoints Textual description of keypoints on the image
-	 * @returns The skeleton OBJ file URL
+	 * @returns The detected keypoints
 	 */
-	public static async skeleton(image: string, keypoints: string[]): Promise<string> {
+	public static async skeleton(image: string, keypoints: string[]): Promise<CapeXResponse["skeleton"]> {
 		const resp = await this.fetch("/skeleton", { image, keypoints })
-		if (resp?.status !== 200) return ""
+		if (resp?.status !== 200) return []
 		return resp.json.skeleton
 	}
 
@@ -119,7 +119,7 @@ export default class API {
 	 * @param skeleton The target view skeleton as base64
 	 * @returns The generated view as base64
 	 */
-	public static async skel3D(image: string, skeleton: string): Promise<string> {
+	public static async skel3D(image: string, skeleton: string): Promise<Skel3DResponse["prediction"]> {
 		const resp = await this.fetch("/skel3d", { image, skeleton })
 		if (resp?.status !== 200) return ""
 		return resp.json.prediction

@@ -73,7 +73,9 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			console.log("[KeypointMarker] Timeout reached, running segmentation")
 			this.image?.classList.add("placeholder")
 			this.activeApiCall = API.segmentate(this.props.currentImage, { positive: this.positive, negative: this.negative })
-			.then(output => {
+			.then(resp => {
+				console.log("[KeypointMarker] Response:", resp)
+				const output = resp.preview
 				console.log("[KeypointMarker] Output length:", output.length)
 				this.props.onPreviewUpdated(output)
 				if (!output) makeToast("Failed to create segmentation", "fail")

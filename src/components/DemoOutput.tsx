@@ -5,7 +5,7 @@ import { AppState } from "../App"
 
 // Component props and states
 interface DemoOutputProps {
-	inFile: File | null
+	inFile: Blob | null
 	skelFile: Blob | null
 	loading: boolean,
 	step: number,
