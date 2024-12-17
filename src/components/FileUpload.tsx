@@ -112,10 +112,15 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	render(): ReactNode {
 		// Modal body markup
 		const modalBody = (<>
-			<p>
-				This demo app renders the skeleton based on the keypoint hierarchy extracted from the input.
-				Below is the keypoint hierarchy of the example:
+			<p className="text-start m-0">
+				The skeleton is rendered based on the defined hierarchy.<br />
+				Hierarchy definition rules:
 			</p>
+			<ul className="text-start">
+				<li>top-level keypoints are connected in the given order</li>
+				<li>indented keypoints are connected to the previous level</li>
+			</ul>
+			<p className="text-start">Below is the keypoint hierarchy of the example:</p>
 			<div className="d-flex flex-row">
 				<pre className="w-50 m-0 p-2 text-start border rounded-start">{this.kpExample}</pre>
 				<img className="w-50 border rounded-end" src="/src/assets/keypoints_example.png" />
@@ -136,7 +141,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 						</KeypointMarker>
 					</div>
 				</div>
-				<div className="flex-fill ms-0 ms-lg-5">
+				<div className="flex-fill ms-0 ms-lg-5 mt-3 mt-lg-0">
 					<h5 className="form-label m-0 my-2">Keypoints</h5>
 					<p className="mb-2 text-start">
 						List all keypoints in order and adjust connections with the number of dashes.

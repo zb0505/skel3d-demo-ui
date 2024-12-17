@@ -166,6 +166,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		return (<>
 			<div className="kp-marker placeholder-glow">
 				{this.props.children}
+				{/* TODO: try "position: fixed" alternatives for mobile users when handling point placement */}
 				<div className="container"></div>
 			</div>
 			<div className="mt-2">

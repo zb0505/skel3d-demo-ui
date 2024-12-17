@@ -65,7 +65,7 @@ export default class App extends Component<{}, AppState> {
 		if (this.stateCopy.step == 2) this.updateForwardBtn({
 			text: "Start again",
 			click: () => {
-				const carousel = bootstrap.Carousel.getOrCreateInstance("#main")
+				const carousel = bootstrap.Carousel.getOrCreateInstance("#main", { wrap: false, keyboard: false, touch: false })
 				carousel.to(0)
 				this.updateState({
 					step: 0,
@@ -91,26 +91,25 @@ export default class App extends Component<{}, AppState> {
 	render(): ReactNode {
 		return (<>
 			<h1 className="mb-5">Skel3D demo</h1>
-			<div id="main" className="carousel slide" data-bs-wrap="false">
+			<div id="main" className="carousel slide" data-bs-wrap="false" data-bs-touch="false" data-bs-keyboard="false">
 				<div className="carousel-inner main-content">
-					<div className="carousel-item active">
+					<div className="carousel-item mb-5 mb-lg-0 active">
 						<FileUpload reset={this.state.reset} step={this.state.step}
 							onFileReady={file => this.updateState({ inFile: file, reset: false })}
 							updateForwardBtn={this.updateForwardBtn.bind(this)} />
 					</div>
-					<div className="carousel-item">
+					<div className="carousel-item mb-5 mb-lg-0">
 						<Skeleton3D file={this.state.inFile} step={this.state.step}
 							loading={this.state.loading} reset={this.state.reset}
 							setLoading={loading => this.updateState({ loading })}
 							updateForwardBtn={this.updateForwardBtn.bind(this)}
 							onGenerateClicked={file => this.updateState({ skelFile: file })} />
 					</div>
-					<div className="carousel-item">
+					<div className="carousel-item mb-5 mb-lg-0">
 						<DemoOutput loading={this.state.loading} inFile={this.state.inFile} skelFile={this.state.skelFile}
 							step={this.state.step} updateForwardBtn={this.updateForwardBtn.bind(this)} />
 					</div>
 				</div>
-				{/* TODO: remember states unless something changes in previous steps, then forget all steps after that */}
 				<div className="d-flex flex-row justify-content-between fixed-bottom mx-3 mb-3">
 					<button className="btn btn-secondary" type="button" data-bs-target="#main" data-bs-slide="prev"
 						disabled={this.state.step < 1 || this.state.loading} onClick={() => this.updateState({ step: this.state.step - 1 })}>
