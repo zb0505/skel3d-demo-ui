@@ -2,6 +2,7 @@ import { Component, ReactNode } from "react"
 import { dataUrlToBlob, fileToDataUrl, updateTooltips } from "../api_tools"
 import KeypointMarker from "./KeypointMarker"
 import { AppState } from "../App"
+import Modal from "./Modal"
 
 
 // Component props and states
@@ -15,7 +16,8 @@ interface FileUploadProps {
 interface FileUploadState {
 	inputUrl: string,
 	preview: string,
-	keypoints: string
+	keypoints: string,
+	exampleShown: boolean
 }
 
 
@@ -29,7 +31,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	
 	// Fields
 	private stateCopy: FileUploadState
-	private readonly kpExample = "head\nbody\nleft elbow\n- left hand\nright elbow\n- right hand\nhips\n- left knee\n-- left foot\n- right knee\n-- right foot"
+	private readonly kpExample = "head\nbody\n- left elbow\n-- left hand\n- right elbow\n-- right hand\nhips\n- left knee\n-- left foot\n- right knee\n-- right foot"
 	
 	// Constructor
 	constructor(props: FileUploadProps) {
@@ -38,7 +40,8 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		this.state = this.stateCopy = {
 			inputUrl: "",
 			preview: "",
-			keypoints: ""
+			keypoints: "",
+			exampleShown: false
 		}
 	}
 
@@ -107,9 +110,24 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 
 	// Markup
 	render(): ReactNode {
-		return (
+		// Modal body markup
+		const modalBody = (<>
+			<p>
+				This demo app renders the skeleton based on the keypoint hierarchy extracted from the input.
+				Below is the keypoint hierarchy of the example:
+			</p>
+			<div className="d-flex flex-row">
+				<pre className="w-50 m-0 p-2 text-start border rounded-start">{this.kpExample}</pre>
+				<img className="w-50 border rounded-end" src="/src/assets/keypoints_example.png" />
+			</div>
+		</>)
+		
+		// Component markup
+		return (<>
+			<Modal id="exampleModal" shown={this.state.exampleShown} setShown={s => this.updateState({ exampleShown: s })}
+				title="Example keypoints" body={modalBody} />
 			<div className="d-flex flex-column flex-lg-row justify-content-between">
-				<div className="flex-fill">
+				<div className="flex-fill mw-50">
 					<h4 className="form-label m-0 mb-2">Input image</h4>
 					<div className="input-container">
 						<input className="form-control mb-3" type="file" id="inputImg" accept="image/jpeg, image/png" />
@@ -118,7 +136,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 						</KeypointMarker>
 					</div>
 				</div>
-				<div className="flex-fill ms-5 mw-50">
+				<div className="flex-fill ms-0 ms-lg-5">
 					<h5 className="form-label m-0 my-2">Keypoints</h5>
 					<p className="mb-2 text-start">
 						List all keypoints in order and adjust connections with the number of dashes.
@@ -127,9 +145,10 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 					<textarea className="form-control mb-2" rows={10} style={{ resize: "none" }}
 						value={this.state.keypoints} onChange={e => this.updateState({ keypoints: e.target.value })}
 						placeholder="head, body, left elbow, left hand, right elbow, right hand, hips, left knee, left foot, right knee, right foot" />
-					<button className="btn btn-primary" onClick={() => this.updateState({ keypoints: this.kpExample })}>Use example</button>
+					<button className="btn btn-outline-primary me-2" onClick={() => this.updateState({ keypoints: this.kpExample })}>Use example</button>
+					<button className="btn btn-outline-secondary" onClick={() => this.updateState({ exampleShown: true })}>Check example skeleton</button>
 				</div>
 			</div>
-		)
+		</>)
 	}
 }

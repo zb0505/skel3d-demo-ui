@@ -35,15 +35,20 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 		// Ignore state changes
 		if (prevProps === this.props) return
 
-		// Update forward button
-		if (prevProps.step !== this.props.step && this.props.step === 2) this.props.updateForwardBtn({ enabled: false })
-
-		// If both files are ready, make API call
-		if (this.filesReady()) {
-			// TODO: image generator API call here
-			this.props.updateForwardBtn({ enabled: true })
+		// Update forward button when step changes
+		if (prevProps.step !== this.props.step && this.props.step === 2) {
+			this.props.updateForwardBtn({ enabled: false })
 		}
-		this.setState({ outputUrl: this.props.inFile ? await fileToDataUrl(this.props.inFile) : "" })
+
+		// If this is the current view, update the output image
+		if (this.props.step === 2) {
+			// If both files are ready, make API call
+			if (this.filesReady()) {
+				// TODO: image generator API call here
+				this.props.updateForwardBtn({ enabled: true })
+			}
+			this.setState({ outputUrl: this.props.inFile ? await fileToDataUrl(this.props.inFile) : "" })
+		}
 	}
 	
 	// Markup

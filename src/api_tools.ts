@@ -1,5 +1,14 @@
 import * as bootstrap from "bootstrap"
 
+/** Runs a given listener once the given event happens on the given element */
+export function once(element: Element | null, event: string, listener: (event: Event) => void) {
+	const handler = (args: Event) => {
+		listener(args)
+		element?.removeEventListener(event, handler)
+	}
+	element?.addEventListener(event, handler)
+}
+
 // Read file as data URL and display preview
 export function fileToDataUrl(file: File | Blob): Promise<string> {
 	return new Promise(resolve => {
@@ -30,29 +39,41 @@ export function updateTooltips() {
 
 // Model inputs
 export type Point = [x: number, y: number]
-interface SupportPoints {
+export interface SupportPoints {
 	positive: Point[]
 	negative: Point[]
 }
-interface SAM2Input {
+export interface SAM2Input {
 	image: string,
 	points: SupportPoints
 }
 
-interface CapeXInput {
+export interface CapeXInput {
 	image: string,
-	keypoints: string[]
+	keypoints: string[],
+	skeleton: [a: number, b: number][]
 }
 
-interface Skel3DInput {
+export interface Skel3DInput {
 	image: string,
 	skeleton: string
 }
 
+
 // Model responses
-interface SAM2Response { segmentation: string, preview: string }
-interface CapeXResponse { skeleton: [x: number, y: number, z: number][] }
-interface Skel3DResponse { prediction: string }
+export interface SAM2Response {
+	segmentation: string,
+	preview: string
+}
+
+export interface CapeXResponse {
+	skeleton: [x: number, y: number, z: number][],
+	minmax: [min: number, max: number][]
+}
+
+export interface Skel3DResponse {
+	prediction: string
+}
 
 // API endpoint definitions
 interface APIInputs {
@@ -82,9 +103,12 @@ export default class API {
 	private static fetch<P extends keyof APIInputs>(path: P, body: APIInputs[P]): Promise<APIResponse<P> | undefined | null> {
 		(path as string) = path.startsWith("/") ? path : `/${path}`
 		const apiUrl = this.apiURL.replace(/\/$/, "")
+		const timeoutController = new AbortController()
+		setTimeout(() => timeoutController.abort(), 5000) // 5 seconds timeout
 		return fetch(apiUrl + path, {
 			headers: { "Content-Type": "application/json" },
-			method: "POST", body: JSON.stringify(body)
+			method: "POST", body: JSON.stringify(body),
+			signal: timeoutController.signal
 		}).then(async r => r.ok ? { status: r.status, json: await r.json() } : null)
 		.catch(err => console.error("API fetch failed:", err)) as any
 	}
@@ -107,10 +131,10 @@ export default class API {
 	 * @param keypoints Textual description of keypoints on the image
 	 * @returns The detected keypoints
 	 */
-	public static async skeleton(image: string, keypoints: string[]): Promise<CapeXResponse["skeleton"]> {
-		const resp = await this.fetch("/skeleton", { image, keypoints })
-		if (resp?.status !== 200) return []
-		return resp.json.skeleton
+	public static async skeleton(image: string, keypoints: string[], skeleton: CapeXInput["skeleton"]): Promise<CapeXResponse> {
+		const resp = await this.fetch("/skeleton", { image, keypoints, skeleton })
+		if (resp?.status !== 200) return { skeleton: [], minmax: [] }
+		return resp.json
 	}
 
 	/**
