@@ -1,14 +1,17 @@
 import { Component, ReactNode } from "react"
-import { fileToDataUrl } from "../api_tools"
+import API, { fileToDataUrl, Point } from "../api_tools"
 import { AppState } from "../App"
+import makeToast from "../toast_tools"
 
 
 // Component props and states
 interface DemoOutputProps {
-	inFile: Blob | null
-	skelFile: Blob | null
+	inFile: Blob | null,
+	currSkel: Point[] | null,
+	targetSkel: Point[] | null,
 	loading: boolean,
 	step: number,
+	setLoading: (loading: boolean) => void,
 	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
 }
 
@@ -19,6 +22,9 @@ interface DemoOutputState {
 
 // Demo output class
 export default class DemoOutput extends Component<DemoOutputProps, DemoOutputState> {
+	// Store active API call to avoid calling it multiple times
+	private activeApiCall: Promise<any> | null = null
+	
 	// Constructor
 	constructor(props: DemoOutputProps) {
 		super(props)
@@ -26,14 +32,19 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 	}
 
 	// Check if both input files are ready
-	private filesReady(): boolean {
-		return !!(this.props.inFile && this.props.skelFile)
+	private propsReady(): boolean {
+		return !!(this.props.inFile && this.props.currSkel && this.props.targetSkel)
 	}
 
 	// Query API when both input files are ready
 	async componentDidUpdate(prevProps: Readonly<DemoOutputProps>, _prevState: Readonly<DemoOutputState>, _snapshot?: any): Promise<void> {
-		// Ignore state changes
-		if (prevProps === this.props) return
+		// Ignore state changes except for input image and skeleton changes
+		if (
+			prevProps.inFile === this.props.inFile &&
+			prevProps.currSkel === this.props.currSkel &&
+			prevProps.targetSkel === this.props.targetSkel &&
+			prevProps.step === this.props.step
+		) return
 
 		// Update forward button when step changes
 		if (prevProps.step !== this.props.step && this.props.step === 2) {
@@ -42,12 +53,19 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 
 		// If this is the current view, update the output image
 		if (this.props.step === 2) {
-			// If both files are ready, make API call
-			if (this.filesReady()) {
-				// TODO: image generator API call here
-				this.props.updateForwardBtn({ enabled: true })
+			// If all props are ready, make API call
+			if (this.propsReady() && !this.activeApiCall) {
+				console.log("[DemoOutput] Generating target view...")
+				this.props.setLoading(true)
+				this.activeApiCall = API.skel3D(await fileToDataUrl(this.props.inFile!), this.props.currSkel!, this.props.targetSkel!).then(output => {
+					if (!output) return makeToast("Failed to generate target view", "fail")
+					else this.setState({ outputUrl: output })
+					this.props.updateForwardBtn({ enabled: true })
+					this.props.setLoading(false)
+					console.log("[DemoOutput] Target view generation successful:", !!output)
+					this.activeApiCall = null
+				})
 			}
-			this.setState({ outputUrl: this.props.inFile ? await fileToDataUrl(this.props.inFile) : "" })
 		}
 	}
 	

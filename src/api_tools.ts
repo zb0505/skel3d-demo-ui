@@ -19,7 +19,8 @@ export function fileToDataUrl(file: File | Blob): Promise<string> {
 }
 
 // Convert data URL to blob
-export function dataUrlToBlob(dataUrl: string): Blob {
+export function dataUrlToBlob(dataUrl: string): Blob | null {
+	if (!dataUrl) return null
 	const bytes = atob(dataUrl.split(",")[1])
 	const mimeType = dataUrl.split(",")[0].split(":")[1].split(";")[0]
 	const buffer = new ArrayBuffer(bytes.length)
@@ -56,7 +57,8 @@ export interface CapeXInput {
 
 export interface Skel3DInput {
 	image: string,
-	skeleton: string
+	skeleton: Point[],
+	target: Point[]
 }
 
 
@@ -67,6 +69,7 @@ export interface SAM2Response {
 }
 
 export interface CapeXResponse {
+	original: Point[],
 	skeleton: [x: number, y: number, z: number][],
 	minmax: [min: number, max: number][]
 }
@@ -104,7 +107,7 @@ export default class API {
 		(path as string) = path.startsWith("/") ? path : `/${path}`
 		const apiUrl = this.apiURL.replace(/\/$/, "")
 		const timeoutController = new AbortController()
-		setTimeout(() => timeoutController.abort(), 5000) // 5 seconds timeout
+		setTimeout(() => timeoutController.abort(), 2 * 60 * 1000) // 2 minutes timeout
 		return fetch(apiUrl + path, {
 			headers: { "Content-Type": "application/json" },
 			method: "POST", body: JSON.stringify(body),
@@ -133,7 +136,7 @@ export default class API {
 	 */
 	public static async skeleton(image: string, keypoints: string[], skeleton: CapeXInput["skeleton"]): Promise<CapeXResponse> {
 		const resp = await this.fetch("/skeleton", { image, keypoints, skeleton })
-		if (resp?.status !== 200) return { skeleton: [], minmax: [] }
+		if (resp?.status !== 200) return { skeleton: [], minmax: [], original: [] }
 		return resp.json
 	}
 
@@ -143,8 +146,8 @@ export default class API {
 	 * @param skeleton The target view skeleton as base64
 	 * @returns The generated view as base64
 	 */
-	public static async skel3D(image: string, skeleton: string): Promise<Skel3DResponse["prediction"]> {
-		const resp = await this.fetch("/skel3d", { image, skeleton })
+	public static async skel3D(image: string, skeleton: Point[], target: Point[]): Promise<Skel3DResponse["prediction"]> {
+		const resp = await this.fetch("/skel3d", { image, skeleton, target })
 		if (resp?.status !== 200) return ""
 		return resp.json.prediction
 	}

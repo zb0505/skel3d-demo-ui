@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react"
 import * as Three from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
-import API, { CapeXInput, CapeXResponse, dataUrlToBlob, fileToDataUrl } from "../api_tools"
+import API, { CapeXInput, CapeXResponse, fileToDataUrl, Point } from "../api_tools"
 import { AppState } from "../App"
 import FileUpload from "./FileUpload"
 import makeToast from "../toast_tools"
@@ -22,7 +22,7 @@ interface Skeleton3DProps {
 	reset: boolean,
 	step: number,
 	setLoading: (loading: boolean) => void,
-	onGenerateClicked: (skelImg: Blob) => void,
+	onGenerateClicked: (currSkel: Point[], targetSkel: Point[]) => void,
 	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
 }
 interface Skeleton3DState {
@@ -38,18 +38,18 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	private light: Three.AmbientLight = null!
 	private camera: Three.PerspectiveCamera = null!
 	private mainRenderer: Three.WebGLRenderer = null!
-	private exportRenderer: Three.WebGLRenderer = null!
 	private controls: OrbitControls = null!
 	private cameraRotation: Three.Euler = null!
 	private connections: CapeXInput["skeleton"] = []
 	private minmax: CapeXResponse["minmax"] = []
 	private activeApiCall: Promise<any> | null = null
+	private origRotation: number[] = [0, 0]
 
 
 	// Class constructor
 	constructor(props: Skeleton3DProps) {
 		super(props)
-		this.state = { skeletonData: [] }
+		this.state = { skeletonData: null }
 	}
 
 	// Prepare canvas and 3D library
@@ -61,7 +61,6 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		const light = this.light = new Three.AmbientLight()
 		const camera = this.camera = new Three.PerspectiveCamera(75, width / height, 0.1, 1000)
 		const renderer = this.mainRenderer = new Three.WebGLRenderer({ canvas: elem, antialias: true })
-		this.exportRenderer = new Three.WebGLRenderer({ canvas: elem, antialias: true, preserveDrawingBuffer: true })
 		const controls = this.controls = new OrbitControls(camera, elem)
 		
 		// Component settings
@@ -91,8 +90,6 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	componentWillUnmount(): void {
 		this.mainRenderer.clear()
 		this.mainRenderer.dispose()
-		this.exportRenderer.clear()
-		this.exportRenderer.dispose()
 		this.controls.disconnect()
 		this.controls.dispose()
 		this.scene.clear()
@@ -124,7 +121,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 			console.log("[Skeleton3D] File:", this.props.file, ", prev file:", prevProps.file, ", keypoints:", uploadInstance?.state.keypoints)
 			if (
 				this.props.file !== null && prevProps.step !== this.props.step &&
-				uploadInstance?.state.keypoints && !this.activeApiCall
+				uploadInstance?.state.keypoints && !this.activeApiCall && !this.state.skeletonData
 			) {
 				console.log("[Skeleton3D] File ready, loading skeleton data...")
 				this.generateSkeleton()
@@ -201,20 +198,29 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		this.camera.position.set(lookX, lookY, lookZ + maxDist)
 		this.cameraRotation = this.camera.rotation.clone()
 		this.controls.update()
+		this.origRotation = [this.controls.getPolarAngle(), this.controls.getAzimuthalAngle()]
 		console.log("[Skeleton3D] Camera position:", this.camera.position, ", maxDist:", maxDist, ", minmax:", this.minmax)
 	}
 
 	// User clicked the generate button
 	private generateClicked() {
-		// Capture canvas picture
-		this.scene.background = new Three.Color("white")
-		this.exportRenderer.render(this.scene, this.camera)
-		const dataUrl = this.canvas.toDataURL()
-		this.exportRenderer.clear()
-		this.mainRenderer.render(this.scene, this.camera)
-		this.scene.background = new Three.Color("wheat")
-		const file = dataUrlToBlob(dataUrl)
-		this.props.onGenerateClicked(file)
+		// Remove 3D coords and un-centralize 2D coords
+		const img = document.querySelector("#preview") as HTMLImageElement
+		const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
+		const currSkel: Point[] = this.state.skeletonData?.map(([x, y, _]) => [x + Math.floor(imgWidth / 2), y + Math.floor(imgHeight / 2)]) || []
+
+		// Transform skeleton coords with camera rotation
+		const targetSkel: Point[] = currSkel.map(([x, y]) => {
+			const vec = new Three.Vector3(x, y, 0)
+			vec.applyAxisAngle(new Three.Vector3(1, 0, 0), this.controls.getPolarAngle() - this.origRotation[0])
+			vec.applyAxisAngle(new Three.Vector3(0, 1, 0), this.controls.getAzimuthalAngle() - this.origRotation[1])
+			vec.projectOnPlane(new Three.Vector3(0, 0, 1)).round()
+			console.log("[Skeleton3D] Vector projection:", vec, ", orig coords:", [x, y, 0])
+			return [vec.x, vec.y]
+		})
+
+		// Pass skeleton coords to next component
+		this.props.onGenerateClicked(currSkel, targetSkel)
 	}
 
 	// Reset camera position and look direction
@@ -232,6 +238,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		this.camera.position.set(lookX, lookY, lookZ + maxDist)
 		this.camera.rotation.set(this.cameraRotation.x, this.cameraRotation.y, this.cameraRotation.z)
 		this.controls.update()
+		this.origRotation = [this.controls.getPolarAngle(), this.controls.getAzimuthalAngle()]
 	}
 
 	// Retrieve keypoint list from input
