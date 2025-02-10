@@ -46,7 +46,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	}
 
 	// Update state
-	private updateState(newState: Partial<FileUploadState>) {
+	private updateState(newState: Partial<FileUploadState>): void {
 		this.stateCopy = { ...this.stateCopy, ...newState }
 		this.setState(this.stateCopy)
 

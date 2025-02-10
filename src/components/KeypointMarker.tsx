@@ -14,6 +14,17 @@ interface KeypointMarkerStates {
 	markerType: "pos" | "neg"
 }
 
+export interface Position {
+	width: number,
+	height: number,
+	left: number,
+	top: number,
+	right: number,
+	bottom: number,
+	x: number,
+	y: number
+}
+
 
 // Keypoint marker class
 export default class KeypointMarker extends Component<KeypointMarkerProps, KeypointMarkerStates> {
@@ -32,7 +43,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	}
 
 	// Get image true position relative to the viewport
-	private getImagePosition(image: HTMLImageElement) {
+	private getImagePosition(image: HTMLImageElement): Position {
 		const box = image.getBoundingClientRect()
 		return {
 			width: Math.round(box.width),
@@ -65,7 +76,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	}
 
 	// New point added
-	private onPointAdded() {
+	private onPointAdded(): void {
 		if (this.activeApiCall) return
 		if (this.markerTimeout) clearTimeout(this.markerTimeout)
 		console.log("[KeypointMarker] Point added, waiting for timeout")
@@ -87,7 +98,6 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 				this.activeApiCall = null
 			})
 		}, 2000)
-		
 	}
 
 	// Reset points

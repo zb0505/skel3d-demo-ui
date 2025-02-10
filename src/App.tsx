@@ -49,19 +49,19 @@ export default class App extends Component<{}, AppState> {
 	}
 
 	// Update state
-	private updateState(newState: Partial<AppState>) {
+	private updateState(newState: Partial<AppState>): void {
 		this.stateCopy = { ...this.stateCopy, ...newState }
 		this.setState(this.stateCopy)
 	}
 
 	// Update forward button state
-	private updateForwardBtn(newState: Partial<AppState["forwardBtn"]>) {
+	private updateForwardBtn(newState: Partial<AppState["forwardBtn"]>): void {
 		console.log("[App] Forward btn updated:", newState)
 		this.updateState({ forwardBtn: { ...this.stateCopy.forwardBtn, ...newState } })
 	}
 
 	// Forward button click event
-	private onForwardBtnClicked() {
+	private onForwardBtnClicked(): void {
 		this.state.forwardBtn.click()
 		this.updateState({ step: (this.state.step + 1) % 3 })
 		if (this.stateCopy.step == 2) this.updateForwardBtn({

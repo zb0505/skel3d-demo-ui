@@ -203,7 +203,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	}
 
 	// User clicked the generate button
-	private generateClicked() {
+	private generateClicked(): void {
 		// Remove 3D coords and un-centralize 2D coords
 		const img = document.querySelector("#preview") as HTMLImageElement
 		const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
