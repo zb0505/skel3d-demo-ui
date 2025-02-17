@@ -44,6 +44,8 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	private minmax: CapeXResponse["minmax"] = []
 	private activeApiCall: Promise<any> | null = null
 	private origRotation: number[] = [0, 0]
+	private prevFile: Blob | null = null
+	private keypoints: string = ""
 
 
 	// Class constructor
@@ -118,12 +120,19 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 
 			// Make API call and set skeleton data
 			const uploadInstance = FileUpload.getInstance()
-			console.log("[Skeleton3D] File:", this.props.file, ", prev file:", prevProps.file, ", keypoints:", uploadInstance?.state.keypoints)
+			console.log("[Skeleton3D] File:", this.props.file, ", prev file:", prevProps.file,
+				`\n  Step check:`, prevProps.step !== this.props.step,
+				`\n  Active API call check:`, !this.activeApiCall,
+				`\n  File check:`, prevProps.file !== this.props.file,
+				`\n  Keypoints check:`, (uploadInstance?.state.keypoints ?? "") !== this.keypoints,
+			)
 			if (
-				this.props.file !== null && prevProps.step !== this.props.step &&
-				uploadInstance?.state.keypoints && !this.activeApiCall && !this.state.skeletonData
+				this.props.file !== null && prevProps.step !== this.props.step && !this.activeApiCall &&
+				((uploadInstance?.state.keypoints ?? "") !== this.keypoints || this.prevFile !== this.props.file)
 			) {
 				console.log("[Skeleton3D] File ready, loading skeleton data...")
+				this.keypoints = uploadInstance?.state.keypoints ?? ""
+				this.prevFile = this.props.file
 				this.generateSkeleton()
 			}
 		}
@@ -139,12 +148,11 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 
 	// Run skeleton generation
 	private async generateSkeleton(): Promise<void> {
-		const uploadInstance = FileUpload.getInstance()
-		if (!uploadInstance || !this.props.file) return
+		if (!this.keypoints || !this.props.file) return
 		this.props.setLoading(true)
 		this.setState({ skeletonData: null })
-		const kps = this.getKeypoints(uploadInstance.state.keypoints)
-		this.connections = this.buildConnections(uploadInstance.state.keypoints)
+		const kps = this.getKeypoints(this.keypoints)
+		this.connections = this.buildConnections(this.keypoints)
 		this.activeApiCall = API.skeleton(await fileToDataUrl(this.props.file), kps, this.connections).then(data => {
 			this.minmax = data.minmax
 			this.setState({ skeletonData: data.skeleton })
