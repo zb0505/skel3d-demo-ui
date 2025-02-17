@@ -59,3 +59,16 @@
 .kp-marker .point.neg {
 	background-color: #dd0000;
 }
+
+/* Floating action button styles */
+.fab {
+	position: fixed;
+	z-index: 2000;
+	bottom: 1rem;
+}
+.fab.fab-left {
+	left: 1rem;
+}
+.fab.fab-right {
+	right: 1rem;
+}

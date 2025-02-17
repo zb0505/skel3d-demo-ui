@@ -115,16 +115,14 @@ export default class App extends Component<{}, AppState> {
 							updateForwardBtn={this.updateForwardBtn.bind(this)} />
 					</div>
 				</div>
-				<div className="d-flex flex-row justify-content-between fixed-bottom mx-3 mb-3 z-0">
-					<button className="btn btn-secondary z-3" type="button" data-bs-target="#main" data-bs-slide="prev"
-						disabled={this.state.step < 1 || this.state.loading} onClick={() => this.updateState({ step: this.state.step - 1 })}>
-						Previous
-					</button>
-					<button className="btn btn-primary z-3" type="button" data-bs-target="#main" data-bs-slide="next"
-						onClick={this.onForwardBtnClicked.bind(this)} disabled={!this.state.forwardBtn.enabled || this.state.loading}>
-						{this.state.forwardBtn.text}
-					</button>
-				</div>
+				<button className="btn btn-secondary fab fab-left" type="button" data-bs-target="#main" data-bs-slide="prev"
+					disabled={this.state.step < 1 || this.state.loading} onClick={() => this.updateState({ step: this.state.step - 1 })}>
+					Previous
+				</button>
+				<button className="btn btn-primary fab fab-right" type="button" data-bs-target="#main" data-bs-slide="next"
+					onClick={this.onForwardBtnClicked.bind(this)} disabled={!this.state.forwardBtn.enabled || this.state.loading}>
+					{this.state.forwardBtn.text}
+				</button>
 			</div>
 		</>)
 	}
