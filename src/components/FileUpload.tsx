@@ -141,7 +141,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 						</KeypointMarker>
 					</div>
 				</div>
-				<div className="flex-fill ms-0 ms-lg-5 mt-3 mt-lg-0">
+				<div className="mw-45 ms-0 ms-lg-5 mt-3 mt-lg-0">
 					<h5 className="form-label m-0 my-2">Keypoints</h5>
 					<p className="mb-2 text-start">
 						List all keypoints in order and adjust connections with the number of dashes.

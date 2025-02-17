@@ -8,13 +8,13 @@
 
 /* Preview image styles */
 .preview, .output {
-	width: 70%;
+	width: 90%;
 	border: 1px solid gray;
 	border-radius: 10px;
 }
-@media screen and (max-width: 992px) {
-	.preview, .output {
-		width: 90%;
+@media screen and (min-aspect-ratio: 4 / 3) {
+	.output {
+		width: 50%;
 	}
 }
 .preview[src=""], .output[src=""] {
@@ -36,16 +36,22 @@
 .mw-50 {
 	min-width: 50%;
 }
+.mw-45 {
+	min-width: 45%;
+}
 
 /* Keypoint marker on image */
 .kp-marker .point {
 	display: block;
 	height: 10px;
 	width: 10px;
-	position: fixed;
+	position: absolute;
 	border-radius: 50%;
 	border: 1px solid black;
 	box-shadow: 0 0 3px white;
+}
+.kp-marker .container {
+	position: relative;
 }
 .kp-marker .point.pos {
 	background-color: #009cc4;

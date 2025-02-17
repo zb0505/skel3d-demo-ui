@@ -43,8 +43,8 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	}
 
 	// Get image true position relative to the viewport
-	private getImagePosition(image: HTMLImageElement): Position {
-		const box = image.getBoundingClientRect()
+	private getElemPosition(element: HTMLElement): Position {
+		const box = element.getBoundingClientRect()
 		return {
 			width: Math.round(box.width),
 			height: Math.round(box.height),
@@ -59,7 +59,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 
 	// Validate point location
 	private validatePoint(point: number[], image: HTMLImageElement): boolean {
-		const box = this.getImagePosition(image)
+		const box = this.getElemPosition(image)
 		const imgLeft = box.left, imgRight = box.right
 		const imgTop = box.top, imgBottom = box.bottom
 		console.log("[KeypointMarker] Image props:",
@@ -102,11 +102,12 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 
 	// Reset points
 	private async removePoints(): Promise<void> {
-		if (this.container) this.container.innerHTML = ""
+		if (this.container) this.container.querySelectorAll(".point").forEach(p => p.remove())
 		if (this.activeApiCall) return this.activeApiCall.then(() => this.removePoints())
 		this.props.onPreviewUpdated("")
 		this.positive = []
 		this.negative = []
+		return Promise.resolve()
 	}
 
 	// Component rendered event
@@ -131,16 +132,19 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			if (this.activeApiCall) return
 
 			// Add point to list
-			const box = this.getImagePosition(image)
+			const imgBox = this.getElemPosition(image)
+			const contBox = this.getElemPosition(container)
 			const scaleX = image.naturalWidth / image.offsetWidth, scaleY = image.naturalHeight / image.offsetHeight
-			const coords = [(event.x - box.left) * scaleX, (event.y - box.top) * scaleY].map(Math.round) as Point
+			const coords = [(event.x - imgBox.left) * scaleX, (event.y - imgBox.top) * scaleY].map(Math.round) as Point
 			console.log("[KeypointMarker] Image info:",
 				`\n  Size: ${image.offsetWidth}x${image.offsetHeight}`,
-				`\n  Offset: ${box.left}x${box.top}`,
+				`\n  Offset: ${imgBox.left}x${imgBox.top}`,
 				`\n  Original: ${image.naturalWidth}x${image.naturalHeight}`,
 				`\n  Scale: ${scaleX} x ${scaleY}`,
 				`\n  Event coords: ${event.x}x${event.y}`,
-				`\n  Coords:`, [event.x - box.left, event.y - box.top],
+				`\n  Coords:`, [event.x - imgBox.left, event.y - imgBox.top],
+				`\n  ImgBox:`, imgBox,
+				`\n  ContBox:`, contBox,
 				`\n  Scaled coords:`, coords
 			)
 			// If the point is already in the list, ignore it
@@ -149,11 +153,15 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			if (this.state.markerType === "pos") this.positive.push(coords)
 			else this.negative.push(coords)
 
+			// Calculate point relative position via percentage
+			const relX = Math.round((event.x - contBox.left - 5) / contBox.width * 100)
+			const relY = Math.round((event.y - contBox.top - 5) / contBox.height * 100)
+
 			// Create point on view
 			const point = document.createElement("span")
 			point.classList.add("point", this.state.markerType)
-			point.style.top = `${event.clientY - 5}px`
-			point.style.left = `${event.clientX - 5}px`
+			point.style.top = `${relY}%`
+			point.style.left = `${relX}%`
 			container.appendChild(point)
 			this.onPointAdded()
 		})
@@ -175,9 +183,9 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	render(): ReactNode {
 		return (<>
 			<div className="kp-marker placeholder-glow">
-				{this.props.children}
-				{/* TODO: try "position: fixed" alternatives for mobile users when handling point placement */}
-				<div className="container"></div>
+				<div className="container">
+					{this.props.children}
+				</div>
 			</div>
 			<div className="mt-2">
 				<button className={"btn btn-outline-success me-2" + (this.state.markerType === "pos" ? " active" : "")}
