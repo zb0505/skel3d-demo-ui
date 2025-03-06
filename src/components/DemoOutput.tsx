@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react"
-import API, { fileToDataUrl, Point } from "../api_tools"
+import API, { Utils, Point } from "../api_tools"
 import { AppState } from "../App"
-import makeToast from "../toast_tools"
+import ToastUtils from "../toast_tools"
 
 
 // Component props and states
@@ -57,8 +57,8 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 			if (this.propsReady() && !this.activeApiCall) {
 				console.log("[DemoOutput] Generating target view...")
 				this.props.setLoading(true)
-				this.activeApiCall = API.skel3D(await fileToDataUrl(this.props.inFile!), this.props.currSkel!, this.props.targetSkel!).then(output => {
-					if (!output) return makeToast("Failed to generate target view", "fail")
+				this.activeApiCall = API.skel3D(await Utils.fileToDataUrl(this.props.inFile!), this.props.currSkel!, this.props.targetSkel!).then(output => {
+					if (!output) return ToastUtils.makeToast("Failed to generate target view", "fail")
 					else this.setState({ outputUrl: output })
 					this.props.updateForwardBtn({ enabled: true })
 					this.props.setLoading(false)

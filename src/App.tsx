@@ -2,7 +2,7 @@ import { Component, ReactNode } from "react"
 import FileUpload from "./components/FileUpload"
 import Skeleton3D from "./components/Skeleton3D"
 import DemoOutput from "./components/DemoOutput"
-import { Point, updateTooltips } from "./api_tools"
+import { Point, Utils } from "./api_tools"
 import * as bootstrap from "bootstrap"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "./App.css"
@@ -87,7 +87,7 @@ export default class App extends Component<{}, AppState> {
 
 	// Update tooltips on the page
 	componentDidUpdate(_prevProps: Readonly<{}>, _prevState: Readonly<AppState>, _snapshot?: any): void {
-		updateTooltips()
+		Utils.updateTooltips()
 	}
 
 	// Markup

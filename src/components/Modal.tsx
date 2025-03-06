@@ -1,6 +1,6 @@
 import React, { useEffect } from "react"
 import * as bootstrap from "bootstrap"
-import { once } from "../api_tools"
+import { Utils } from "../api_tools"
 
 
 // Assign custom ID for each modal
@@ -34,7 +34,7 @@ export default function Modal({
 		const modalElem = document.getElementById(mid)
 		if (!modalElem) return
 		const modal = bootstrap.Modal.getOrCreateInstance(modalElem, { keyboard: true, backdrop: true })
-		once(modalElem, "hidden.bs.modal", () => setShown(false))
+		Utils.once(modalElem, "hidden.bs.modal", () => setShown(false))
 		if (shown) modal.show()
 		else modal.hide()
 	}, [shown])

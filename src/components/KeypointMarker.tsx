@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from "react"
-import API, { Point, updateTooltips } from "../api_tools"
-import makeToast from "../toast_tools"
+import API, { Point, Utils } from "../api_tools"
+import ToastUtils from "../toast_tools"
 
 
 // Component props and states
@@ -90,7 +90,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 				console.log("[KeypointMarker] Output length:", output.length)
 				this.props.onPreviewUpdated(output)
 				if (!output) {
-					makeToast("Failed to create segmentation", "fail")
+					ToastUtils.makeToast("Failed to create segmentation", "fail")
 					this.removePoints()
 				}
 				console.log("[KeypointMarker] Segmentation complete")
@@ -113,7 +113,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	// Component rendered event
 	componentDidMount(): void {
 		// Update tooltips
-		updateTooltips()
+		Utils.updateTooltips()
 		
 		// Containers and image
 		const marker = document.querySelector("div.kp-marker") as HTMLDivElement

@@ -1,40 +1,46 @@
 import * as bootstrap from "bootstrap"
 
-/** Runs a given listener once the given event happens on the given element */
-export function once(element: Element | null, event: string, listener: (event: Event) => void) {
-	const handler = (args: Event) => {
-		listener(args)
-		element?.removeEventListener(event, handler)
+
+// Utility functions
+export class Utils {
+	/** Tooltip list for updating them */
+	private static tooltipList = [] as bootstrap.Tooltip[]
+	
+	/** Updates all tooltips on the page */
+	static updateTooltips(): void {
+		this.tooltipList.forEach(tooltip => tooltip.dispose())
+		const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+		this.tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => bootstrap.Tooltip.getOrCreateInstance(tooltipTriggerEl))
 	}
-	element?.addEventListener(event, handler)
-}
 
-// Read file as data URL and display preview
-export function fileToDataUrl(file: File | Blob): Promise<string> {
-	return new Promise(resolve => {
-		const reader = new FileReader()
-		reader.addEventListener("load", event => resolve(event.target?.result as string))
-		reader.readAsDataURL(file)
-	})
-}
+	/** Runs a given listener once the given event happens on the given element */
+	static once(element: Element | null, event: string, listener: (event: Event) => void) {
+		const handler = (args: Event) => {
+			listener(args)
+			element?.removeEventListener(event, handler)
+		}
+		element?.addEventListener(event, handler)
+	}
 
-// Convert data URL to blob
-export function dataUrlToBlob(dataUrl: string): Blob | null {
-	if (!dataUrl) return null
-	const bytes = atob(dataUrl.split(",")[1])
-	const mimeType = dataUrl.split(",")[0].split(":")[1].split(";")[0]
-	const buffer = new ArrayBuffer(bytes.length)
-	const uintArr = new Uint8Array(buffer)
-	for (let i = 0; i < bytes.length; i++) uintArr[i] = bytes.charCodeAt(i)
-	return new Blob([buffer], { type: mimeType })
-}
+	/** Read file as data URL and display preview */
+	static fileToDataUrl(file: File | Blob): Promise<string> {
+		return new Promise(resolve => {
+			const reader = new FileReader()
+			reader.addEventListener("load", event => resolve(event.target?.result as string))
+			reader.readAsDataURL(file)
+		})
+	}
 
-// Tooltip tools
-let tooltipList = [] as bootstrap.Tooltip[]
-export function updateTooltips() {
-	tooltipList.forEach(tooltip => tooltip.dispose())
-	const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-	tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => bootstrap.Tooltip.getOrCreateInstance(tooltipTriggerEl))
+	/** Convert data URL to blob */
+	static dataUrlToBlob(dataUrl: string): Blob | null {
+		if (!dataUrl) return null
+		const bytes = atob(dataUrl.split(",")[1])
+		const mimeType = dataUrl.split(",")[0].split(":")[1].split(";")[0]
+		const buffer = new ArrayBuffer(bytes.length)
+		const uintArr = new Uint8Array(buffer)
+		for (let i = 0; i < bytes.length; i++) uintArr[i] = bytes.charCodeAt(i)
+		return new Blob([buffer], { type: mimeType })
+	}
 }
 
 
@@ -100,7 +106,8 @@ interface APIResponse<P extends keyof APIOutputs> {
 // API class
 export default class API {
 	/** Base API URL */
-	static apiURL: string = import.meta.env.API_URL || "http://localhost:8000"
+	static apiURL: string = import.meta.env.VITE_API_URL || "http://localhost:8000"
+	private static apiKey = import.meta.env.VITE_API_KEY || "none"
 
 	/** Fetches the requested resource */
 	private static fetch<P extends keyof APIInputs>(path: P, body: APIInputs[P]): Promise<APIResponse<P> | undefined | null> {
@@ -109,11 +116,14 @@ export default class API {
 		const timeoutController = new AbortController()
 		setTimeout(() => timeoutController.abort(), 2 * 60 * 1000) // 2 minutes timeout
 		return fetch(apiUrl + path, {
-			headers: { "Content-Type": "application/json" },
+			headers: {
+				"Content-Type": "application/json",
+				"Authorization": `${this.apiKey}`
+			},
 			method: "POST", body: JSON.stringify(body),
 			signal: timeoutController.signal
 		}).then(async r => r.ok ? { status: r.status, json: await r.json() } : null)
-		.catch(err => console.error("API fetch failed:", err)) as any
+		.catch(err => console.error("API fetch failed:", err) as undefined)
 	}
 
 	/**

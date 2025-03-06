@@ -1,10 +1,10 @@
 import { Component, ReactNode } from "react"
 import * as Three from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
-import API, { CapeXInput, CapeXResponse, fileToDataUrl, Point } from "../api_tools"
+import API, { CapeXInput, CapeXResponse, Utils, Point } from "../api_tools"
 import { AppState } from "../App"
 import FileUpload from "./FileUpload"
-import makeToast from "../toast_tools"
+import ToastUtils from "../toast_tools"
 
 
 // Tree node structure
@@ -153,7 +153,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		this.setState({ skeletonData: null })
 		const kps = this.getKeypoints(this.keypoints)
 		this.connections = this.buildConnections(this.keypoints)
-		this.activeApiCall = API.skeleton(await fileToDataUrl(this.props.file), kps, this.connections).then(data => {
+		this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.props.file), kps, this.connections).then(data => {
 			this.minmax = data.minmax
 			this.setState({ skeletonData: data.skeleton })
 			this.props.setLoading(false)
@@ -167,7 +167,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 
 		// Check if both 3D and skeleton data are ready
 		if (!this.state.skeletonData || !this.is3DReady()) return
-		if (this.state.skeletonData.length < 1) return makeToast("Failed to create skeleton", "fail")
+		if (this.state.skeletonData.length < 1) return ToastUtils.makeToast("Failed to create skeleton", "fail")
 		console.log("[Skeleton3D] Rendering skeleton data, skeleton:", this.state.skeletonData, ", connections:", this.connections)
 
 		// Clear scene and add new skeleton data

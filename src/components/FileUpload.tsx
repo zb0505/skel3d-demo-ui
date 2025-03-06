@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react"
-import { dataUrlToBlob, fileToDataUrl, updateTooltips } from "../api_tools"
+import { Utils } from "../api_tools"
 import KeypointMarker from "./KeypointMarker"
 import { AppState } from "../App"
 import Modal from "./Modal"
@@ -59,7 +59,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	// Component rendered event
 	componentDidMount(): void {
 		// Update tooltips
-		updateTooltips()
+		Utils.updateTooltips()
 
 		// Update forward button
 		this.props.updateForwardBtn({
@@ -73,7 +73,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 			if (!input.files?.length) return this.updateState({ inputUrl: "" })
 
 			// Read file as data URL and display preview
-			this.updateState({ inputUrl: await fileToDataUrl(input.files[0]) })
+			this.updateState({ inputUrl: await Utils.fileToDataUrl(input.files[0]) })
 		})
 	}
 
@@ -105,7 +105,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		}
 
 		// Handle preview update
-		if (prevState.preview !== this.state.preview) this.props.onFileReady(dataUrlToBlob(this.state.preview), this.state.keypoints)
+		if (prevState.preview !== this.state.preview) this.props.onFileReady(Utils.dataUrlToBlob(this.state.preview), this.state.keypoints)
 	}
 
 	// Markup
