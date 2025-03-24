@@ -1,5 +1,5 @@
 import React, { Component, ReactNode } from "react"
-import API, { Point, Utils } from "../api_tools"
+import API, { Point2D, Utils } from "../api_tools"
 import ToastUtils from "../toast_tools"
 
 
@@ -30,11 +30,11 @@ export interface Position {
 export default class KeypointMarker extends Component<KeypointMarkerProps, KeypointMarkerStates> {
 	// Fields
 	private markerTimeout: ReturnType<typeof setTimeout> | null = null
-	private activeApiCall: Promise<any> | null = null
+	private activeApiCall: Promise<unknown> | null = null
 	private container: HTMLDivElement | null = null
 	private image: HTMLImageElement | null = null
-	private positive: Point[] = []
-	private negative: Point[] = []
+	private positive: Point2D[] = []
+	private negative: Point2D[] = []
 	
 	// Constructor
 	constructor(props: KeypointMarkerProps) {
@@ -135,7 +135,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			const imgBox = this.getElemPosition(image)
 			const contBox = this.getElemPosition(container)
 			const scaleX = image.naturalWidth / image.offsetWidth, scaleY = image.naturalHeight / image.offsetHeight
-			const coords = [(event.x - imgBox.left) * scaleX, (event.y - imgBox.top) * scaleY].map(Math.round) as Point
+			const coords = [(event.x - imgBox.left) * scaleX, (event.y - imgBox.top) * scaleY].map(Math.round) as Point2D
 			console.log("[KeypointMarker] Image info:",
 				`\n  Size: ${image.offsetWidth}x${image.offsetHeight}`,
 				`\n  Offset: ${imgBox.left}x${imgBox.top}`,
@@ -168,7 +168,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	}
 
 	// File change listener
-	componentDidUpdate(prevProps: Readonly<KeypointMarkerProps>, _prevState: Readonly<KeypointMarkerStates>, _snapshot?: any): void {
+	componentDidUpdate(prevProps: Readonly<KeypointMarkerProps>): void {
 		// Re-render triggered, re-select container
 		this.container = document.querySelector("div.kp-marker .container")
 		

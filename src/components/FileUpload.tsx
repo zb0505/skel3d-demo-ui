@@ -78,7 +78,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	}
 
 	// Component updated event
-	componentDidUpdate(prevProps: Readonly<FileUploadProps>, prevState: Readonly<FileUploadState>, _snapshot?: any): void {
+	componentDidUpdate(prevProps: Readonly<FileUploadProps>, prevState: Readonly<FileUploadState>): void {
 		// Ignore all changes except for reset and step props and preview state
 		if (
 			prevProps.reset === this.props.reset &&

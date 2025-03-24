@@ -2,7 +2,7 @@ import { Component, ReactNode } from "react"
 import FileUpload from "./components/FileUpload"
 import Skeleton3D from "./components/Skeleton3D"
 import DemoOutput from "./components/DemoOutput"
-import { Point, Utils } from "./api_tools"
+import { Point3D, Utils } from "./api_tools"
 import * as bootstrap from "bootstrap"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "./App.css"
@@ -11,8 +11,8 @@ import "./App.css"
 // App states
 export interface AppState {
 	inFile: Blob | null,
-	currSkel: Point[] | null,
-	targetSkel: Point[] | null,
+	currSkel: Point3D[] | null,
+	targetSkel: Point3D[] | null,
 	loading: boolean,
 	reset: boolean,
 	step: number,
@@ -25,13 +25,13 @@ export interface AppState {
 
 
 // App root component
-export default class App extends Component<{}, AppState> {
+export default class App extends Component<object, AppState> {
 	// State copy for proper state updates
 	private stateCopy: AppState
 	
 
 	// Constructor
-	constructor(props: {}) {
+	constructor(props: object) {
 		super(props)
 		this.state = this.stateCopy = {
 			step: 0,
@@ -86,7 +86,7 @@ export default class App extends Component<{}, AppState> {
 	}
 
 	// Update tooltips on the page
-	componentDidUpdate(_prevProps: Readonly<{}>, _prevState: Readonly<AppState>, _snapshot?: any): void {
+	componentDidUpdate(): void {
 		Utils.updateTooltips()
 	}
 

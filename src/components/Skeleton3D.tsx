@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react"
 import * as Three from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
-import API, { CapeXInput, CapeXResponse, Utils, Point } from "../api_tools"
+import API, { MeTRAbsResponse, Utils, CapeXInput, Point3D } from "../api_tools"
 import { AppState } from "../App"
 import FileUpload from "./FileUpload"
 import ToastUtils from "../toast_tools"
@@ -22,11 +22,11 @@ interface Skeleton3DProps {
 	reset: boolean,
 	step: number,
 	setLoading: (loading: boolean) => void,
-	onGenerateClicked: (currSkel: Point[], targetSkel: Point[]) => void,
+	onGenerateClicked: (currSkel: Point3D[], targetSkel: Point3D[]) => void,
 	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
 }
 interface Skeleton3DState {
-	skeletonData: CapeXResponse["skeleton"] | null
+	skeletonData: MeTRAbsResponse["skeleton"] | null
 }
 
 
@@ -41,8 +41,8 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	private controls: OrbitControls = null!
 	private cameraRotation: Three.Euler = null!
 	private connections: CapeXInput["skeleton"] = []
-	private minmax: CapeXResponse["minmax"] = []
-	private activeApiCall: Promise<any> | null = null
+	private minmax: MeTRAbsResponse["minmax"] = []
+	private activeApiCall: Promise<unknown> | null = null
 	private origRotation: number[] = [0, 0]
 	private prevFile: Blob | null = null
 	private keypoints: string = ""
@@ -99,7 +99,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	}
 
 	// File change listener
-	async componentDidUpdate(prevProps: Readonly<Skeleton3DProps>, prevState: Readonly<Skeleton3DState>, _snapshot?: any): Promise<void> {
+	async componentDidUpdate(prevProps: Readonly<Skeleton3DProps>, prevState: Readonly<Skeleton3DState>): Promise<void> {
 		// Ignore state changes except for skeleton data
 		if (
 			prevState.skeletonData === this.state.skeletonData &&
@@ -151,9 +151,17 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		if (!this.keypoints || !this.props.file) return
 		this.props.setLoading(true)
 		this.setState({ skeletonData: null })
-		const kps = this.getKeypoints(this.keypoints)
-		this.connections = this.buildConnections(this.keypoints)
-		this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.props.file), kps, this.connections).then(data => {
+		if (import.meta.env.VITE_SKEL_AI === "capex") {
+			const kps = this.getKeypoints(this.keypoints)
+			this.connections = this.buildConnections(this.keypoints)
+			this.activeApiCall = API.skeleton_capex(await Utils.fileToDataUrl(this.props.file), kps, this.connections).then(data => {
+				this.minmax = data.minmax
+				this.setState({ skeletonData: data.skeleton })
+				this.props.setLoading(false)
+				this.activeApiCall = null
+			})
+		}
+		else this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.props.file)).then(data => {
 			this.minmax = data.minmax
 			this.setState({ skeletonData: data.skeleton })
 			this.props.setLoading(false)
@@ -213,18 +221,19 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	// User clicked the generate button
 	private generateClicked(): void {
 		// Remove 3D coords and un-centralize 2D coords
-		const img = document.querySelector("#preview") as HTMLImageElement
-		const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
-		const currSkel: Point[] = this.state.skeletonData?.map(([x, y, _]) => [x + Math.floor(imgWidth / 2), y + Math.floor(imgHeight / 2)]) || []
+		//const img = document.querySelector("#preview") as HTMLImageElement
+		//const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
+		//const currSkel: Point2D[] = this.state.skeletonData?.map(([x, y]) => [x + Math.floor(imgWidth / 2), y + Math.floor(imgHeight / 2)]) || []
+		const currSkel = this.state.skeletonData || []
 
 		// Transform skeleton coords with camera rotation
-		const targetSkel: Point[] = currSkel.map(([x, y]) => {
-			const vec = new Three.Vector3(x, y, 0)
+		const targetSkel: Point3D[] = currSkel.map(([x, y, z]) => {
+			const vec = new Three.Vector3(x, y, z)
 			vec.applyAxisAngle(new Three.Vector3(1, 0, 0), this.controls.getPolarAngle() - this.origRotation[0])
 			vec.applyAxisAngle(new Three.Vector3(0, 1, 0), this.controls.getAzimuthalAngle() - this.origRotation[1])
 			vec.projectOnPlane(new Three.Vector3(0, 0, 1)).round()
 			console.log("[Skeleton3D] Vector projection:", vec, ", orig coords:", [x, y, 0])
-			return [vec.x, vec.y]
+			return [vec.x, vec.y, vec.z]
 		})
 
 		// Pass skeleton coords to next component

@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react"
-import API, { Utils, Point } from "../api_tools"
+import API, { Utils, Point3D } from "../api_tools"
 import { AppState } from "../App"
 import ToastUtils from "../toast_tools"
 
@@ -7,8 +7,8 @@ import ToastUtils from "../toast_tools"
 // Component props and states
 interface DemoOutputProps {
 	inFile: Blob | null,
-	currSkel: Point[] | null,
-	targetSkel: Point[] | null,
+	currSkel: Point3D[] | null,
+	targetSkel: Point3D[] | null,
 	loading: boolean,
 	step: number,
 	setLoading: (loading: boolean) => void,
@@ -23,7 +23,7 @@ interface DemoOutputState {
 // Demo output class
 export default class DemoOutput extends Component<DemoOutputProps, DemoOutputState> {
 	// Store active API call to avoid calling it multiple times
-	private activeApiCall: Promise<any> | null = null
+	private activeApiCall: Promise<unknown> | null = null
 	
 	// Constructor
 	constructor(props: DemoOutputProps) {
@@ -37,7 +37,7 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 	}
 
 	// Query API when both input files are ready
-	async componentDidUpdate(prevProps: Readonly<DemoOutputProps>, _prevState: Readonly<DemoOutputState>, _snapshot?: any): Promise<void> {
+	async componentDidUpdate(prevProps: Readonly<DemoOutputProps>): Promise<void> {
 		// Ignore state changes except for input image and skeleton changes
 		if (
 			prevProps.inFile === this.props.inFile &&

@@ -45,14 +45,19 @@ export class Utils {
 
 
 // Model inputs
-export type Point = [x: number, y: number]
+export type Point2D = [x: number, y: number]
+export type Point3D = [x: number, y: number, z: number]
 export interface SupportPoints {
-	positive: Point[]
-	negative: Point[]
+	positive: Point2D[]
+	negative: Point2D[]
 }
 export interface SAM2Input {
 	image: string,
 	points: SupportPoints
+}
+
+export interface MeTRAbsInput {
+	image: string
 }
 
 export interface CapeXInput {
@@ -63,8 +68,8 @@ export interface CapeXInput {
 
 export interface Skel3DInput {
 	image: string,
-	skeleton: Point[],
-	target: Point[]
+	skeleton: Point3D[],
+	target: Point3D[]
 }
 
 
@@ -74,9 +79,15 @@ export interface SAM2Response {
 	preview: string
 }
 
+export interface MeTRAbsResponse {
+	skeleton: Point3D[],
+	original: Point3D[],
+	minmax: [min: number, max: number][]
+}
+
 export interface CapeXResponse {
-	original: Point[],
-	skeleton: [x: number, y: number, z: number][],
+	original: Point2D[],
+	skeleton: Point3D[],
 	minmax: [min: number, max: number][]
 }
 
@@ -87,12 +98,14 @@ export interface Skel3DResponse {
 // API endpoint definitions
 interface APIInputs {
 	"/segmentate": SAM2Input,
-	"/skeleton": CapeXInput,
+	"/skeleton": MeTRAbsInput,
+	"/skeleton_capex": CapeXInput,
 	"/skel3d": Skel3DInput
 }
 interface APIOutputs {
 	"/segmentate": SAM2Response,
-	"/skeleton": CapeXResponse,
+	"/skeleton": MeTRAbsResponse,
+	"/skeleton_capex": CapeXResponse,
 	"/skel3d": Skel3DResponse
 }
 
@@ -139,13 +152,24 @@ export default class API {
 	}
 
 	/**
-	 * Creates a 3D skeleton for the given image
+	 * Creates a 3D skeleton for the given image via MeTRAbs
+	 * @param image The input image as base64
+	 * @returns The detected keypoints
+	 */
+	public static async skeleton(image: string): Promise<MeTRAbsResponse> {
+		const resp = await this.fetch("/skeleton", { image })
+		if (resp?.status !== 200) return { skeleton: [], minmax: [], original: [] }
+		return resp.json
+	}
+
+	/**
+	 * Creates a 3D skeleton for the given image via CapeX
 	 * @param image The input image as base64
 	 * @param keypoints Textual description of keypoints on the image
 	 * @returns The detected keypoints
 	 */
-	public static async skeleton(image: string, keypoints: string[], skeleton: CapeXInput["skeleton"]): Promise<CapeXResponse> {
-		const resp = await this.fetch("/skeleton", { image, keypoints, skeleton })
+	public static async skeleton_capex(image: string, keypoints: string[], skeleton: CapeXInput["skeleton"]): Promise<CapeXResponse> {
+		const resp = await this.fetch("/skeleton_capex", { image, keypoints, skeleton })
 		if (resp?.status !== 200) return { skeleton: [], minmax: [], original: [] }
 		return resp.json
 	}
@@ -156,7 +180,7 @@ export default class API {
 	 * @param skeleton The target view skeleton as base64
 	 * @returns The generated view as base64
 	 */
-	public static async skel3D(image: string, skeleton: Point[], target: Point[]): Promise<Skel3DResponse["prediction"]> {
+	public static async skel3D(image: string, skeleton: Point3D[], target: Point3D[]): Promise<Skel3DResponse["prediction"]> {
 		const resp = await this.fetch("/skel3d", { image, skeleton, target })
 		if (resp?.status !== 200) return ""
 		return resp.json.prediction
