@@ -151,7 +151,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		if (!this.keypoints || !this.props.file) return
 		this.props.setLoading(true)
 		this.setState({ skeletonData: null })
-		if (import.meta.env.VITE_SKEL_AI === "capex") {
+		if (API.skeletonModel === "capex") {
 			const kps = this.getKeypoints(this.keypoints)
 			this.connections = this.buildConnections(this.keypoints)
 			this.activeApiCall = API.skeleton_capex(await Utils.fileToDataUrl(this.props.file), kps, this.connections).then(data => {
@@ -220,11 +220,13 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 
 	// User clicked the generate button
 	private generateClicked(): void {
-		// Remove 3D coords and un-centralize 2D coords
-		//const img = document.querySelector("#preview") as HTMLImageElement
-		//const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
-		//const currSkel: Point2D[] = this.state.skeletonData?.map(([x, y]) => [x + Math.floor(imgWidth / 2), y + Math.floor(imgHeight / 2)]) || []
-		const currSkel = this.state.skeletonData || []
+		let currSkel = this.state.skeletonData || []
+		if (API.skeletonModel === "capex") {
+			// Remove 3D coords and un-centralize 2D coords
+			const img = document.querySelector("#preview") as HTMLImageElement
+			const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
+			currSkel = this.state.skeletonData?.map(([x, y]) => [x + Math.floor(imgWidth / 2), y + Math.floor(imgHeight / 2), 0]) || []
+		}
 
 		// Transform skeleton coords with camera rotation
 		const targetSkel: Point3D[] = currSkel.map(([x, y, z]) => {
@@ -232,7 +234,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 			vec.applyAxisAngle(new Three.Vector3(1, 0, 0), this.controls.getPolarAngle() - this.origRotation[0])
 			vec.applyAxisAngle(new Three.Vector3(0, 1, 0), this.controls.getAzimuthalAngle() - this.origRotation[1])
 			vec.projectOnPlane(new Three.Vector3(0, 0, 1)).round()
-			console.log("[Skeleton3D] Vector projection:", vec, ", orig coords:", [x, y, 0])
+			console.log("[Skeleton3D] Vector projection:", vec, ", orig coords:", [x, y, z])
 			return [vec.x, vec.y, vec.z]
 		})
 

@@ -120,6 +120,7 @@ interface APIResponse<P extends keyof APIOutputs> {
 export default class API {
 	/** Base API URL */
 	static apiURL: string = import.meta.env.VITE_API_URL || "http://localhost:8000"
+	static skeletonModel: string = import.meta.env.VITE_SKEL_AI || "metrabs"
 	private static apiKey = import.meta.env.VITE_API_KEY || "none"
 
 	/** Fetches the requested resource */
