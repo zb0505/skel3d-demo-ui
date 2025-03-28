@@ -55,14 +55,14 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 		if (this.props.step === 2) {
 			// If all props are ready, make API call
 			if (this.propsReady() && !this.activeApiCall) {
-				console.log("[DemoOutput] Generating target view...")
+				if (API.isDebug) console.log("[DemoOutput] Generating target view...")
 				this.props.setLoading(true)
 				this.activeApiCall = API.skel3D(await Utils.fileToDataUrl(this.props.inFile!), this.props.currSkel!, this.props.targetSkel!).then(output => {
 					if (!output) return ToastUtils.makeToast("Failed to generate target view", "fail")
 					else this.setState({ outputUrl: output })
 					this.props.updateForwardBtn({ enabled: true })
 					this.props.setLoading(false)
-					console.log("[DemoOutput] Target view generation successful:", !!output)
+					if (API.isDebug) console.log("[DemoOutput] Target view generation successful:", !!output)
 					this.activeApiCall = null
 				})
 			}

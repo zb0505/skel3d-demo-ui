@@ -29,6 +29,25 @@
 	overflow-y: auto;
 }
 
+/* Input image and containers' height */
+@media screen and (min-width: 512px) and (max-width: 992px) {
+	.preview {
+		height: 60vh;
+		width: auto;
+	}
+}
+@media screen and (min-width: 768px) and (orientation: landscape) {
+	.preview {
+		height: 50vh;
+		width: auto;
+	}
+}
+@media screen and (min-width: 992px) and (orientation: portrait) {
+	.preview {
+		width: 90%;
+	}
+}
+
 /* Keypoint container below preview image */
 .keypoints {
 	height: 40%;

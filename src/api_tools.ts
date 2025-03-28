@@ -118,8 +118,11 @@ interface APIResponse<P extends keyof APIOutputs> {
 
 // API class
 export default class API {
+	/** Whether debug mode is enabled */
+	static isDebug: boolean = import.meta.env.VITE_DEBUG === "true"
 	/** Base API URL */
 	static apiURL: string = import.meta.env.VITE_API_URL || "http://localhost:8000"
+	/** The used skeleton model */
 	static skeletonModel: string = import.meta.env.VITE_SKEL_AI || "metrabs"
 	private static apiKey = import.meta.env.VITE_API_KEY || "none"
 

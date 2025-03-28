@@ -62,7 +62,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		const box = this.getElemPosition(image)
 		const imgLeft = box.left, imgRight = box.right
 		const imgTop = box.top, imgBottom = box.bottom
-		console.log("[KeypointMarker] Image props:",
+		if (API.isDebug) console.log("[KeypointMarker] Image props:",
 			`\n  HTML size: ${image.offsetWidth}x${image.offsetHeight}`,
 			`\n  Orig size: ${image.naturalWidth}x${image.naturalHeight}`,
 			"\n  Position:",
@@ -79,21 +79,21 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	private onPointAdded(): void {
 		if (this.activeApiCall) return
 		if (this.markerTimeout) clearTimeout(this.markerTimeout)
-		console.log("[KeypointMarker] Point added, waiting for timeout")
+		if (API.isDebug) console.log("[KeypointMarker] Point added, waiting for timeout")
 		this.markerTimeout = setTimeout(() => {
-			console.log("[KeypointMarker] Timeout reached, running segmentation")
+			if (API.isDebug) console.log("[KeypointMarker] Timeout reached, running segmentation")
 			this.image?.classList.add("placeholder")
 			this.activeApiCall = API.segmentate(this.props.currentImage, { positive: this.positive, negative: this.negative })
 			.then(resp => {
-				console.log("[KeypointMarker] Response:", resp)
+				if (API.isDebug) console.log("[KeypointMarker] Response:", resp)
 				const output = resp.preview
-				console.log("[KeypointMarker] Output length:", output.length)
+				if (API.isDebug) console.log("[KeypointMarker] Output length:", output.length)
 				this.props.onPreviewUpdated(output)
 				if (!output) {
 					ToastUtils.makeToast("Failed to create segmentation", "fail")
 					this.removePoints()
 				}
-				console.log("[KeypointMarker] Segmentation complete")
+				if (API.isDebug) console.log("[KeypointMarker] Segmentation complete")
 				this.image?.classList.remove("placeholder")
 				this.activeApiCall = null
 			})
@@ -136,7 +136,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			const contBox = this.getElemPosition(container)
 			const scaleX = image.naturalWidth / image.offsetWidth, scaleY = image.naturalHeight / image.offsetHeight
 			const coords = [(event.x - imgBox.left) * scaleX, (event.y - imgBox.top) * scaleY].map(Math.round) as Point2D
-			console.log("[KeypointMarker] Image info:",
+			if (API.isDebug) console.log("[KeypointMarker] Image info:",
 				`\n  Size: ${image.offsetWidth}x${image.offsetHeight}`,
 				`\n  Offset: ${imgBox.left}x${imgBox.top}`,
 				`\n  Original: ${image.naturalWidth}x${image.naturalHeight}`,

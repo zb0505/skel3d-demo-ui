@@ -2,7 +2,7 @@ import { Component, ReactNode } from "react"
 import FileUpload from "./components/FileUpload"
 import Skeleton3D from "./components/Skeleton3D"
 import DemoOutput from "./components/DemoOutput"
-import { Point3D, Utils } from "./api_tools"
+import API, { Point3D, Utils } from "./api_tools"
 import * as bootstrap from "bootstrap"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "./App.css"
@@ -56,7 +56,7 @@ export default class App extends Component<object, AppState> {
 
 	// Update forward button state
 	private updateForwardBtn(newState: Partial<AppState["forwardBtn"]>): void {
-		console.log("[App] Forward btn updated:", newState)
+		if (API.isDebug) console.log("[App] Forward btn updated:", newState)
 		this.updateState({ forwardBtn: { ...this.stateCopy.forwardBtn, ...newState } })
 	}
 

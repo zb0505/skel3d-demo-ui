@@ -75,7 +75,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		scene.add(light)
 		camera.position.z = 5
 		renderer.setAnimationLoop(() => renderer.render(scene, camera))
-		console.log("[Skeleton3D] Component:", this)
+		if (API.isDebug) console.log("[Skeleton3D] Component:", this)
 
 		// Update 3D renderer props on window resize
 		window.addEventListener("resize", () => {
@@ -111,7 +111,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		// Update forward button and process this step
 		const btnDisabled = this.props.loading || !this.state.skeletonData || this.state.skeletonData.length < 1
 		if (this.props.step === 1) {
-			console.log("[Skeleton3D] Updating forward button:", !btnDisabled)
+			if (API.isDebug) console.log("[Skeleton3D] Updating forward button:", !btnDisabled)
 			this.props.updateForwardBtn({
 				text: "Generate",
 				enabled: !btnDisabled,
@@ -120,7 +120,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 
 			// Make API call and set skeleton data
 			const uploadInstance = FileUpload.getInstance()
-			console.log("[Skeleton3D] File:", this.props.file, ", prev file:", prevProps.file,
+			if (API.isDebug) console.log("[Skeleton3D] File:", this.props.file, ", prev file:", prevProps.file,
 				`\n  Step check:`, prevProps.step !== this.props.step,
 				`\n  Active API call check:`, !this.activeApiCall,
 				`\n  File check:`, prevProps.file !== this.props.file,
@@ -130,7 +130,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 				this.props.file !== null && prevProps.step !== this.props.step && !this.activeApiCall &&
 				((uploadInstance?.state.keypoints ?? "") !== this.keypoints || this.prevFile !== this.props.file)
 			) {
-				console.log("[Skeleton3D] File ready, loading skeleton data...")
+				if (API.isDebug) console.log("[Skeleton3D] File ready, loading skeleton data...")
 				this.keypoints = uploadInstance?.state.keypoints ?? ""
 				this.prevFile = this.props.file
 				this.generateSkeleton()
@@ -171,12 +171,12 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 
 	// Skeleton data ready handler
 	private skeletonDataReady(): void {
-		console.log("[Skeleton3D] Skeleton data ready:", this.state.skeletonData && this.is3DReady(), ", rendering", this.state.skeletonData?.length, "points")
+		if (API.isDebug) console.log("[Skeleton3D] Skeleton data ready:", this.state.skeletonData && this.is3DReady(), ", rendering", this.state.skeletonData?.length, "points")
 
 		// Check if both 3D and skeleton data are ready
 		if (!this.state.skeletonData || !this.is3DReady()) return
 		if (this.state.skeletonData.length < 1) return ToastUtils.makeToast("Failed to create skeleton", "fail")
-		console.log("[Skeleton3D] Rendering skeleton data, skeleton:", this.state.skeletonData, ", connections:", this.connections)
+		if (API.isDebug) console.log("[Skeleton3D] Rendering skeleton data, skeleton:", this.state.skeletonData, ", connections:", this.connections)
 
 		// Clear scene and add new skeleton data
 		this.scene.clear()
@@ -192,7 +192,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		const spheres: Three.Mesh[] = []
 		for (const [x, y, z] of this.state.skeletonData) {
 			const color = "#" + (Math.abs(x) * maxDist * 8 + Math.abs(y) * maxDist + Math.abs(z)).toString(16).slice(-6).padStart(6, "0")
-			console.log("[Skeleton3D] Adding sphere at:", x, y, z, ", color:", color)
+			if (API.isDebug) console.log("[Skeleton3D] Adding sphere at:", x, y, z, ", color:", color)
 			const geometry = new Three.SphereGeometry(0.02 * maxDist, 32, 32)
 			const material = new Three.MeshBasicMaterial({ color })
 			const sphere = new Three.Mesh(geometry, material)
@@ -215,7 +215,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		this.cameraRotation = this.camera.rotation.clone()
 		this.controls.update()
 		this.origRotation = [this.controls.getPolarAngle(), this.controls.getAzimuthalAngle()]
-		console.log("[Skeleton3D] Camera position:", this.camera.position, ", maxDist:", maxDist, ", minmax:", this.minmax)
+		if (API.isDebug) console.log("[Skeleton3D] Camera position:", this.camera.position, ", maxDist:", maxDist, ", minmax:", this.minmax)
 	}
 
 	// User clicked the generate button
@@ -234,7 +234,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 			vec.applyAxisAngle(new Three.Vector3(1, 0, 0), this.controls.getPolarAngle() - this.origRotation[0])
 			vec.applyAxisAngle(new Three.Vector3(0, 1, 0), this.controls.getAzimuthalAngle() - this.origRotation[1])
 			vec.projectOnPlane(new Three.Vector3(0, 0, 1)).round()
-			console.log("[Skeleton3D] Vector projection:", vec, ", orig coords:", [x, y, z])
+			if (API.isDebug) console.log("[Skeleton3D] Vector projection:", vec, ", orig coords:", [x, y, z])
 			return [vec.x, vec.y, vec.z]
 		})
 
@@ -268,7 +268,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	// Traverse tree and collect connections
 	private traverse(node: TreeNode | null, parent: TreeNode, keypoints: string[]): [a: number, b: number][] {
 		if (!node) return []
-		console.log("[Skeleton3D] Traversing:", node.kp, ", parent:", parent.kp)
+		if (API.isDebug) console.log("[Skeleton3D] Traversing:", node.kp, ", parent:", parent.kp)
 		return [
 			[keypoints.indexOf(parent.kp), keypoints.indexOf(node.kp)],
 			...this.traverse(node.next, parent, keypoints),
