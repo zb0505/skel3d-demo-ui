@@ -94,8 +94,8 @@ export default class App extends Component<object, AppState> {
 	render(): ReactNode {
 		return (<>
 			<h1 className="mb-5">Skel3D demo</h1>
-			<div id="main" className="carousel slide z-2" data-bs-wrap="false" data-bs-touch="false" data-bs-keyboard="false">
-				<div className="carousel-inner main-content z-2">
+			<div id="main" className="carousel slide" data-bs-wrap="false" data-bs-touch="false" data-bs-keyboard="false">
+				<div className="carousel-inner main-content">
 					<div className="carousel-item mb-5 mb-lg-0 active">
 						<FileUpload reset={this.state.reset} step={this.state.step}
 							onFileReady={file => this.updateState({ inFile: file, reset: false })}

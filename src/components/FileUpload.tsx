@@ -100,7 +100,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		else if (this.props.step === 0) {
 			this.props.updateForwardBtn({
 				text: "Next",
-				enabled: !!(this.stateCopy.inputUrl && this.stateCopy.preview && this.stateCopy.keypoints)
+				enabled: !!(this.stateCopy.inputUrl && this.stateCopy.preview && (API.skeletonModel !== "capex" || this.stateCopy.keypoints))
 			})
 		}
 
