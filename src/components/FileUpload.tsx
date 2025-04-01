@@ -3,6 +3,7 @@ import API, { Utils } from "../api_tools"
 import KeypointMarker from "./KeypointMarker"
 import { AppState } from "../App"
 import Modal from "./Modal"
+import ToastUtils from "../toast_tools"
 
 
 // Component props and states
@@ -31,6 +32,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	
 	// Fields
 	private stateCopy: FileUploadState
+	private fileInput: HTMLInputElement | null = null
 	private readonly kpExample = "head\nbody\n- left elbow\n-- left hand\n- right elbow\n-- right hand\nhips\n- left knee\n-- left foot\n- right knee\n-- right foot"
 	
 	// Constructor
@@ -68,9 +70,18 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		})
 		
 		// Listen to file upload events
-		const input = document.querySelector("#inputImg") as HTMLInputElement
+		const input = this.fileInput ??= document.querySelector("#inputImg") as HTMLInputElement // Ensure input is not null
 		input.addEventListener("change", async () => {
+			// If there are no files, set the input URL to empty
 			if (!input.files?.length) return this.updateState({ inputUrl: "" })
+
+			// If the file type is incorrect, show a toast and reset the input
+			const fileType = input.files[0].type
+			if (this.fileInput && !this.fileInput.accept.split(",").some(type => fileType === type.trim())) {
+				ToastUtils.makeToast("Invalid file type", "fail")
+				this.fileInput.value = ""
+				return this.updateState({ inputUrl: "" })
+			}
 
 			// Read file as data URL and display preview
 			this.updateState({ inputUrl: await Utils.fileToDataUrl(input.files[0]) })
@@ -88,7 +99,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 
 		// Handle resetting data
 		if (this.props.reset) {
-			(document.querySelector("#inputImg") as HTMLInputElement).value = ""
+			if (this.fileInput) this.fileInput.value = ""
 			this.updateState({
 				inputUrl: "",
 				preview: "",
@@ -105,7 +116,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		}
 
 		// Handle preview update
-		if (prevState.preview !== this.state.preview) this.props.onFileReady(Utils.dataUrlToBlob(this.state.preview), this.state.keypoints)
+		if (prevState.preview !== this.state.preview) this.props.onFileReady(Utils.dataUrlToBlob(this.state.inputUrl), this.state.keypoints)
 	}
 
 	// Markup
@@ -135,7 +146,8 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 				<div className="flex-fill mw-50">
 					<h4 className="form-label m-0 mb-2">Input image</h4>
 					<div className="input-container">
-						<input className="form-control mb-3" type="file" id="inputImg" accept="image/jpeg, image/png" />
+						<input className="form-control mb-3" type="file" id="inputImg"
+							accept="image/jpeg, image/png" ref={input => this.fileInput = input} />
 						<KeypointMarker currentImage={this.state.inputUrl} onPreviewUpdated={preview => this.updateState({ preview })}>
 							<img id="preview" className="preview" src={this.state.preview || this.state.inputUrl || "/src/assets/transparent.png"} />
 						</KeypointMarker>

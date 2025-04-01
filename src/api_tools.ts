@@ -75,24 +75,24 @@ export interface Skel3DInput {
 
 // Model responses
 export interface SAM2Response {
-	segmentation: string,
-	preview: string
+	segmentation: string | null,
+	preview: string | null
 }
 
 export interface MeTRAbsResponse {
-	skeleton: Point3D[],
-	original: Point3D[],
-	minmax: [min: number, max: number][]
+	skeleton: Point3D[] | null,
+	original: Point3D[] | null,
+	minmax: [min: number, max: number][] | null
 }
 
 export interface CapeXResponse {
-	original: Point2D[],
-	skeleton: Point3D[],
-	minmax: [min: number, max: number][]
+	original: Point2D[] | null,
+	skeleton: Point3D[] | null,
+	minmax: [min: number, max: number][] | null
 }
 
 export interface Skel3DResponse {
-	prediction: string
+	prediction: string | null
 }
 
 // API endpoint definitions

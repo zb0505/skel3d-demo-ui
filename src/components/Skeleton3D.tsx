@@ -33,15 +33,15 @@ interface Skeleton3DState {
 // Skeleton 3D viewer class
 export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DState> {
 	// 3D rendering helpers
-	private canvas: HTMLCanvasElement = null!
-	private scene: Three.Scene = null!
-	private light: Three.AmbientLight = null!
-	private camera: Three.PerspectiveCamera = null!
-	private mainRenderer: Three.WebGLRenderer = null!
-	private controls: OrbitControls = null!
-	private cameraRotation: Three.Euler = null!
+	private canvas: HTMLCanvasElement | null = null
+	private scene: Three.Scene | null = null
+	private light: Three.AmbientLight | null = null
+	private camera: Three.PerspectiveCamera | null = null
+	private mainRenderer: Three.WebGLRenderer | null = null
+	private controls: OrbitControls | null = null
+	private cameraRotation: Three.Euler | null = null
 	private connections: CapeXInput["skeleton"] = []
-	private minmax: MeTRAbsResponse["minmax"] = []
+	private minmax: NonNullable<MeTRAbsResponse["minmax"]> = []
 	private activeApiCall: Promise<unknown> | null = null
 	private origRotation: number[] = [0, 0]
 	private prevFile: Blob | null = null
@@ -90,12 +90,12 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 
 	// Clean up 3D renderer and scene
 	componentWillUnmount(): void {
-		this.mainRenderer.clear()
-		this.mainRenderer.dispose()
-		this.controls.disconnect()
-		this.controls.dispose()
-		this.scene.clear()
-		this.camera.clear()
+		this.mainRenderer?.clear()
+		this.mainRenderer?.dispose()
+		this.controls?.disconnect()
+		this.controls?.dispose()
+		this.scene?.clear()
+		this.camera?.clear()
 	}
 
 	// File change listener
@@ -141,29 +141,29 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		if (prevState.skeletonData !== this.state.skeletonData) this.skeletonDataReady()
 	}
 
-	// Check if 3D library is ready
+	// Check if 3D tools are ready
 	private is3DReady(): boolean {
 		return !!(this.canvas && this.scene && this.light && this.camera && this.mainRenderer && this.controls)
 	}
 
 	// Run skeleton generation
 	private async generateSkeleton(): Promise<void> {
-		if (!this.keypoints || !this.props.file) return
+		if (!this.props.file || (API.skeletonModel === "capex" && !this.keypoints)) return
 		this.props.setLoading(true)
 		this.setState({ skeletonData: null })
 		if (API.skeletonModel === "capex") {
 			const kps = this.getKeypoints(this.keypoints)
 			this.connections = this.buildConnections(this.keypoints)
 			this.activeApiCall = API.skeleton_capex(await Utils.fileToDataUrl(this.props.file), kps, this.connections).then(data => {
-				this.minmax = data.minmax
-				this.setState({ skeletonData: data.skeleton })
+				this.minmax = data.minmax || []
+				this.setState({ skeletonData: data.skeleton || [] })
 				this.props.setLoading(false)
 				this.activeApiCall = null
 			})
 		}
 		else this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.props.file)).then(data => {
-			this.minmax = data.minmax
-			this.setState({ skeletonData: data.skeleton })
+			this.minmax = data.minmax || []
+			this.setState({ skeletonData: data.skeleton || [] })
 			this.props.setLoading(false)
 			this.activeApiCall = null
 		})
@@ -179,8 +179,8 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		if (API.isDebug) console.log("[Skeleton3D] Rendering skeleton data, skeleton:", this.state.skeletonData, ", connections:", this.connections)
 
 		// Clear scene and add new skeleton data
-		this.scene.clear()
-		this.scene.add(this.light)
+		this.scene?.clear()
+		this.scene?.add(this.light!)
 
 		// Calculate camera position
 		const maxDist = Math.max(...this.minmax.map(([min, max]) => max - min))
@@ -197,7 +197,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 			const material = new Three.MeshBasicMaterial({ color })
 			const sphere = new Three.Mesh(geometry, material)
 			sphere.position.set(x, y, z)
-			this.scene.add(sphere)
+			this.scene?.add(sphere)
 			spheres.push(sphere)
 		}
 
@@ -207,15 +207,15 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 			const geometry = new Three.BufferGeometry().setFromPoints(points)
 			const material = new Three.LineBasicMaterial({ color: "#00ceff" })
 			const line = new Three.Line(geometry, material)
-			this.scene.add(line)
+			this.scene?.add(line)
 		}
 
 		// Update camera position
-		this.camera.position.set(lookX, lookY, lookZ + maxDist)
-		this.cameraRotation = this.camera.rotation.clone()
-		this.controls.update()
-		this.origRotation = [this.controls.getPolarAngle(), this.controls.getAzimuthalAngle()]
-		if (API.isDebug) console.log("[Skeleton3D] Camera position:", this.camera.position, ", maxDist:", maxDist, ", minmax:", this.minmax)
+		this.camera!.position.set(lookX, lookY, lookZ + maxDist)
+		this.cameraRotation = this.camera!.rotation.clone()
+		this.controls!.update()
+		this.origRotation = [this.controls!.getPolarAngle(), this.controls!.getAzimuthalAngle()]
+		if (API.isDebug) console.log("[Skeleton3D] Camera position:", this.camera?.position, ", maxDist:", maxDist, ", minmax:", this.minmax)
 	}
 
 	// User clicked the generate button
@@ -231,8 +231,8 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		// Transform skeleton coords with camera rotation
 		const targetSkel: Point3D[] = currSkel.map(([x, y, z]) => {
 			const vec = new Three.Vector3(x, y, z)
-			vec.applyAxisAngle(new Three.Vector3(1, 0, 0), this.controls.getPolarAngle() - this.origRotation[0])
-			vec.applyAxisAngle(new Three.Vector3(0, 1, 0), this.controls.getAzimuthalAngle() - this.origRotation[1])
+			vec.applyAxisAngle(new Three.Vector3(1, 0, 0), this.controls!.getPolarAngle() - this.origRotation[0])
+			vec.applyAxisAngle(new Three.Vector3(0, 1, 0), this.controls!.getAzimuthalAngle() - this.origRotation[1])
 			vec.projectOnPlane(new Three.Vector3(0, 0, 1)).round()
 			if (API.isDebug) console.log("[Skeleton3D] Vector projection:", vec, ", orig coords:", [x, y, z])
 			return [vec.x, vec.y, vec.z]
@@ -254,10 +254,10 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		const lookZ = (this.minmax[2][1] - this.minmax[2][0]) / 2 + this.minmax[2][0]
 
 		// Set camera properties and update controls
-		this.camera.position.set(lookX, lookY, lookZ + maxDist)
-		this.camera.rotation.set(this.cameraRotation.x, this.cameraRotation.y, this.cameraRotation.z)
-		this.controls.update()
-		this.origRotation = [this.controls.getPolarAngle(), this.controls.getAzimuthalAngle()]
+		this.camera!.position.set(lookX, lookY, lookZ + maxDist)
+		this.camera!.rotation.set(this.cameraRotation?.x ?? 0, this.cameraRotation?.y ?? 0, this.cameraRotation?.z ?? 0)
+		this.controls!.update()
+		this.origRotation = [this.controls!.getPolarAngle(), this.controls!.getAzimuthalAngle()]
 	}
 
 	// Retrieve keypoint list from input
@@ -325,7 +325,8 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		return (
 			<div className="d-flex flex-column align-items-center placeholder-glow">
 				<h4 className="mb-2">3D skeleton for pose selection</h4>
-				<canvas id="skeleton" className={(!this.state.skeletonData ? "placeholder " : "") + "rounded mx-2"} />
+				<canvas id="skeleton" ref={canvas => this.canvas = canvas}
+					className={(!this.state.skeletonData ? "placeholder " : "") + "rounded mx-2"} />
 				<div className="mt-2 d-flex flex-row">
 					<button className="btn btn-outline-primary" onClick={() => this.generateSkeleton()}
 						disabled={!this.state.skeletonData}>Re-generate skeleton</button>

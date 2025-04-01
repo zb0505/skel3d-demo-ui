@@ -82,7 +82,7 @@
 /* Floating action button styles */
 .fab {
 	position: fixed;
-	z-index: 2000;
+	z-index: 1000;
 	bottom: 1rem;
 }
 .fab.fab-left {

@@ -87,8 +87,8 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			.then(resp => {
 				if (API.isDebug) console.log("[KeypointMarker] Response:", resp)
 				const output = resp.preview
-				if (API.isDebug) console.log("[KeypointMarker] Output length:", output.length)
-				this.props.onPreviewUpdated(output)
+				if (API.isDebug) console.log("[KeypointMarker] Output length:", output?.length)
+				this.props.onPreviewUpdated(output || "")
 				if (!output) {
 					ToastUtils.makeToast("Failed to create segmentation", "fail")
 					this.removePoints()
