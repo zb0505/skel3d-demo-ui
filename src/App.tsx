@@ -2,10 +2,11 @@ import { Component, ReactNode } from "react"
 import FileUpload from "./components/FileUpload"
 import Skeleton3D from "./components/Skeleton3D"
 import DemoOutput from "./components/DemoOutput"
-import API, { Point3D, Utils } from "./api_tools"
+import { Point3D, Utils } from "./api_tools"
 import * as bootstrap from "bootstrap"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "./App.css"
+import AppContextProvider, { AppContext } from "./contexts/AppContextProvider"
 
 
 // App states
@@ -25,62 +26,26 @@ export interface AppState {
 
 
 // App root component
-export default class App extends Component<object, AppState> {
-	// State copy for proper state updates
-	private stateCopy: AppState
-	
+export default class App extends Component<unknown, unknown, AppState> {
+	// App context
+	static contextType = AppContext
+	declare context: React.ContextType<typeof AppContext>
 
 	// Constructor
 	constructor(props: object) {
 		super(props)
-		this.state = this.stateCopy = {
-			step: 0,
-			inFile: null,
-			currSkel: null,
-			targetSkel: null,
-			loading: false,
-			reset: false,
-			forwardBtn: {
-				text: "Next",
-				enabled: true,
-				click: () => {}
-			}
-		}
-	}
-
-	// Update state
-	private updateState(newState: Partial<AppState>): void {
-		this.stateCopy = { ...this.stateCopy, ...newState }
-		this.setState(this.stateCopy)
-	}
-
-	// Update forward button state
-	private updateForwardBtn(newState: Partial<AppState["forwardBtn"]>): void {
-		if (API.isDebug) console.log("[App] Forward btn updated:", newState)
-		this.updateState({ forwardBtn: { ...this.stateCopy.forwardBtn, ...newState } })
 	}
 
 	// Forward button click event
 	private onForwardBtnClicked(): void {
-		this.state.forwardBtn.click()
-		this.updateState({ step: (this.state.step + 1) % 3 })
-		if (this.stateCopy.step == 2) this.updateForwardBtn({
+		this.context.forwardBtn.click()
+		this.context.updateState({ step: (this.context.step + 1) % 3 })
+		if (this.context.updatedState.step == 2) this.context.updateForwardBtn({
 			text: "Start again",
 			click: () => {
 				const carousel = bootstrap.Carousel.getOrCreateInstance("#main", { wrap: false, keyboard: false, touch: false })
 				carousel.to(0)
-				this.updateState({
-					step: 0,
-					reset: true,
-					inFile: null,
-					currSkel: null,
-					targetSkel: null,
-					forwardBtn: {
-						text: "Next",
-						enabled: true,
-						click: () => {}
-					}
-				})
+				this.context.updateState({ ...AppContextProvider.defaultState })
 			}
 		})
 	}
@@ -97,31 +62,25 @@ export default class App extends Component<object, AppState> {
 			<div id="main" className="carousel slide" data-bs-wrap="false" data-bs-touch="false" data-bs-keyboard="false">
 				<div className="carousel-inner main-content">
 					<div className="carousel-item mb-5 mb-lg-0 active">
-						<FileUpload reset={this.state.reset} step={this.state.step}
-							onFileReady={file => this.updateState({ inFile: file, reset: false })}
-							updateForwardBtn={this.updateForwardBtn.bind(this)} />
+						<FileUpload />
 					</div>
 					<div className="carousel-item mb-5 mb-lg-0">
-						<Skeleton3D file={this.state.inFile} step={this.state.step}
-							loading={this.state.loading} reset={this.state.reset}
-							setLoading={loading => this.updateState({ loading })}
-							updateForwardBtn={this.updateForwardBtn.bind(this)}
-							onGenerateClicked={(currSkel, targetSkel) => this.updateState({ currSkel, targetSkel })} />
+						<Skeleton3D />
 					</div>
 					<div className="carousel-item mb-5 mb-lg-0">
-						<DemoOutput loading={this.state.loading} inFile={this.state.inFile}
-							currSkel={this.state.currSkel} targetSkel={this.state.targetSkel}
-							setLoading={loading => this.updateState({ loading })} step={this.state.step}
-							updateForwardBtn={this.updateForwardBtn.bind(this)} />
+						<DemoOutput {...this.context}
+							setLoading={loading => this.context.updateState({ loading })} step={this.context.step}
+							updateForwardBtn={this.context.updateForwardBtn} />
 					</div>
 				</div>
 				<button className="btn btn-secondary fab fab-left" type="button" data-bs-target="#main" data-bs-slide="prev"
-					disabled={this.state.step < 1 || this.state.loading} onClick={() => this.updateState({ step: this.state.step - 1 })}>
+					disabled={this.context.step < 1 || this.context.loading}
+					onClick={() => this.context.updateState({ step: this.context.step - 1 })}>
 					Previous
 				</button>
 				<button className="btn btn-primary fab fab-right" type="button" data-bs-target="#main" data-bs-slide="next"
-					onClick={this.onForwardBtnClicked.bind(this)} disabled={!this.state.forwardBtn.enabled || this.state.loading}>
-					{this.state.forwardBtn.text}
+					onClick={this.onForwardBtnClicked.bind(this)} disabled={!this.context.forwardBtn.enabled || this.context.loading}>
+					{this.context.forwardBtn.text}
 				</button>
 			</div>
 		</>)

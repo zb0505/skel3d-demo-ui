@@ -47,6 +47,16 @@ export class Utils {
 // Model inputs
 export type Point2D = [x: number, y: number]
 export type Point3D = [x: number, y: number, z: number]
+export type BoundingBox = [left: number, top: number, width: number, height: number]
+export type ExtrinsicMatrix = [
+	// Right (X-axis) + Translation
+    [...Point3D, translationX: number],
+	// Up (Y-axis) + Translation
+    [...Point3D, translationY: number],
+	// Forward (Z-axis) + Translation
+    [...Point3D, translationZ: number]
+]
+
 export interface SupportPoints {
 	positive: Point2D[]
 	negative: Point2D[]
@@ -57,31 +67,35 @@ export interface SAM2Input {
 }
 
 export interface MeTRAbsInput {
-	image: string
+	image: string,
+	bbox?: BoundingBox
 }
 
 export interface CapeXInput {
 	image: string,
 	keypoints: string[],
-	skeleton: [a: number, b: number][]
+	skeleton: Point2D[]
 }
 
 export interface Skel3DInput {
 	image: string,
-	skeleton: Point3D[],
-	target: Point3D[]
+	joints: Point3D[],
+	bones: Point2D[],
+	src_camera: ExtrinsicMatrix,
+	target_camera: ExtrinsicMatrix
 }
 
 
 // Model responses
 export interface SAM2Response {
 	segmentation: string | null,
-	preview: string | null
+	preview: string | null,
+	bbox: BoundingBox | null
 }
 
 export interface MeTRAbsResponse {
+	bones: Point2D[] | null,
 	skeleton: Point3D[] | null,
-	original: Point3D[] | null,
 	minmax: [min: number, max: number][] | null
 }
 
@@ -151,7 +165,7 @@ export default class API {
 	 */
 	public static async segmentate(image: string, points: SupportPoints): Promise<SAM2Response> {
 		const resp = await this.fetch("/segmentate", { image, points })
-		if (resp?.status !== 200) return { segmentation: "", preview: "" }
+		if (resp?.status !== 200) return { segmentation: "", preview: "", bbox: null }
 		return resp.json
 	}
 
@@ -162,7 +176,7 @@ export default class API {
 	 */
 	public static async skeleton(image: string): Promise<MeTRAbsResponse> {
 		const resp = await this.fetch("/skeleton", { image })
-		if (resp?.status !== 200) return { skeleton: [], minmax: [], original: [] }
+		if (resp?.status !== 200) return { skeleton: [], minmax: [], bones: [] }
 		return resp.json
 	}
 
@@ -181,11 +195,17 @@ export default class API {
 	/**
 	 * Creates the view of the input object from the direction specified by the given skeleton
 	 * @param image The segmentated input image as base64
-	 * @param skeleton The target view skeleton as base64
+	 * @param joints The 3D joints of the skeleton
+	 * @param bones The bones of the skeleton
+	 * @param srcCamera The camera extrinsic matrix of the input image
+	 * @param targetCamera The camera extrinsic matrix of the target view
 	 * @returns The generated view as base64
 	 */
-	public static async skel3D(image: string, skeleton: Point3D[], target: Point3D[]): Promise<Skel3DResponse["prediction"]> {
-		const resp = await this.fetch("/skel3d", { image, skeleton, target })
+	public static async skel3D(
+		image: string, joints: Point3D[], bones: Point2D[],
+		srcCamera: ExtrinsicMatrix, targetCamera: ExtrinsicMatrix
+	): Promise<Skel3DResponse["prediction"]> {
+		const resp = await this.fetch("/skel3d", { image, joints, bones, src_camera: srcCamera, target_camera: targetCamera })
 		if (resp?.status !== 200) return ""
 		return resp.json.prediction
 	}

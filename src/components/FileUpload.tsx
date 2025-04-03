@@ -1,34 +1,24 @@
 import { Component, ReactNode } from "react"
 import API, { Utils } from "../api_tools"
 import KeypointMarker from "./KeypointMarker"
-import { AppState } from "../App"
 import Modal from "./Modal"
 import ToastUtils from "../toast_tools"
+import { AppContext } from "../contexts/AppContextProvider"
 
 
-// Component props and states
-interface FileUploadProps {
-	step: number,
-	reset: boolean,
-	onFileReady: (file: Blob | null, keypoints: string) => void,
-	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
-}
-
+// Component states
 interface FileUploadState {
 	inputUrl: string,
 	preview: string,
-	keypoints: string,
 	exampleShown: boolean
 }
 
 
 // File upload class
-export default class FileUpload extends Component<FileUploadProps, FileUploadState> {
-	// Singleton instance
-	private static instance: FileUpload | null = null
-	public static getInstance(): FileUpload | null {
-		return FileUpload.instance
-	}
+export default class FileUpload extends Component<unknown, FileUploadState> {
+	// App context
+	static contextType = AppContext
+	declare context: React.ContextType<typeof AppContext>
 	
 	// Fields
 	private stateCopy: FileUploadState
@@ -36,13 +26,11 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	private readonly kpExample = "head\nbody\n- left elbow\n-- left hand\n- right elbow\n-- right hand\nhips\n- left knee\n-- left foot\n- right knee\n-- right foot"
 	
 	// Constructor
-	constructor(props: FileUploadProps) {
+	constructor(props: unknown) {
 		super(props)
-		FileUpload.instance = this
 		this.state = this.stateCopy = {
 			inputUrl: "",
 			preview: "",
-			keypoints: "",
 			exampleShown: false
 		}
 	}
@@ -53,8 +41,8 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		this.setState(this.stateCopy)
 
 		// Update forward button state
-		this.props.updateForwardBtn({
-			enabled: !!(this.stateCopy.inputUrl && this.stateCopy.preview && this.stateCopy.keypoints)
+		this.context.updateForwardBtn({
+			enabled: !!(this.stateCopy.inputUrl && this.stateCopy.preview && this.context.updatedState.keypoints)
 		})
 	}
 
@@ -64,7 +52,7 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 		Utils.updateTooltips()
 
 		// Update forward button
-		this.props.updateForwardBtn({
+		this.context.updateForwardBtn({
 			text: "Next",
 			enabled: false
 		})
@@ -89,34 +77,37 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 	}
 
 	// Component updated event
-	componentDidUpdate(prevProps: Readonly<FileUploadProps>, prevState: Readonly<FileUploadState>): void {
+	componentDidUpdate(_prevProps: Readonly<unknown>, prevState: Readonly<FileUploadState>): void {
 		// Ignore all changes except for reset and step props and preview state
 		if (
-			prevProps.reset === this.props.reset &&
-			prevProps.step === this.props.step &&
+			this.context.prevState.reset === this.context.reset &&
+			this.context.prevState.step === this.context.step &&
 			prevState.preview === this.state.preview
 		) return
 
 		// Handle resetting data
-		if (this.props.reset) {
+		if (this.context.reset) {
 			if (this.fileInput) this.fileInput.value = ""
 			this.updateState({
 				inputUrl: "",
 				preview: "",
-				keypoints: ""
 			})
+			this.context.updateState({ keypoints: "" })
 		}
 
 		// Handle step change
-		else if (this.props.step === 0) {
-			this.props.updateForwardBtn({
+		else if (this.context.step === 0) {
+			const forwardEnabled = !!(this.stateCopy.inputUrl && this.stateCopy.preview && (API.skeletonModel !== "capex" || this.context.updatedState.keypoints))
+			this.context.updateForwardBtn({
 				text: "Next",
-				enabled: !!(this.stateCopy.inputUrl && this.stateCopy.preview && (API.skeletonModel !== "capex" || this.stateCopy.keypoints))
+				enabled: forwardEnabled
 			})
 		}
 
 		// Handle preview update
-		if (prevState.preview !== this.state.preview) this.props.onFileReady(Utils.dataUrlToBlob(this.state.inputUrl), this.state.keypoints)
+		if (prevState.preview !== this.state.preview) {
+			this.context.updateState({ inFile: Utils.dataUrlToBlob(this.state.inputUrl), reset: false })
+		}
 	}
 
 	// Markup
@@ -160,9 +151,9 @@ export default class FileUpload extends Component<FileUploadProps, FileUploadSta
 						Click the button below to see the example.
 					</p>
 					<textarea className="form-control mb-2" rows={10} style={{ resize: "none" }}
-						value={this.state.keypoints} onChange={e => this.updateState({ keypoints: e.target.value })}
+						value={this.context.keypoints} onChange={e => this.context.updateState({ keypoints: e.target.value })}
 						placeholder="head, body, left elbow, left hand, right elbow, right hand, hips, left knee, left foot, right knee, right foot" />
-					<button className="btn btn-outline-primary me-2" onClick={() => this.updateState({ keypoints: this.kpExample })}>Use example</button>
+					<button className="btn btn-outline-primary me-2" onClick={() => this.context.updateState({ keypoints: this.kpExample })}>Use example</button>
 					<button className="btn btn-outline-secondary" onClick={() => this.updateState({ exampleShown: true })}>Check example skeleton</button>
 				</div>
 			</div>

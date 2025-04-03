@@ -1,10 +1,9 @@
 import { Component, ReactNode } from "react"
 import * as Three from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
-import API, { MeTRAbsResponse, Utils, CapeXInput, Point3D } from "../api_tools"
-import { AppState } from "../App"
-import FileUpload from "./FileUpload"
+import API, { MeTRAbsResponse, Utils, CapeXInput, ExtrinsicMatrix } from "../api_tools"
 import ToastUtils from "../toast_tools"
+import { AppContext } from "../contexts/AppContextProvider"
 
 
 // Tree node structure
@@ -15,23 +14,18 @@ interface TreeNode {
 }
 
 
-// Component props and states
-interface Skeleton3DProps {
-	file: Blob | null,
-	loading: boolean,
-	reset: boolean,
-	step: number,
-	setLoading: (loading: boolean) => void,
-	onGenerateClicked: (currSkel: Point3D[], targetSkel: Point3D[]) => void,
-	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
-}
+// Component states
 interface Skeleton3DState {
 	skeletonData: MeTRAbsResponse["skeleton"] | null
 }
 
 
 // Skeleton 3D viewer class
-export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DState> {
+export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
+	// App context
+	static contextType = AppContext
+	declare context: React.ContextType<typeof AppContext>
+	
 	// 3D rendering helpers
 	private canvas: HTMLCanvasElement | null = null
 	private scene: Three.Scene | null = null
@@ -43,13 +37,13 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	private connections: CapeXInput["skeleton"] = []
 	private minmax: NonNullable<MeTRAbsResponse["minmax"]> = []
 	private activeApiCall: Promise<unknown> | null = null
-	private origRotation: number[] = [0, 0]
+	private srcCamera: ExtrinsicMatrix | null = null
 	private prevFile: Blob | null = null
 	private keypoints: string = ""
 
 
 	// Class constructor
-	constructor(props: Skeleton3DProps) {
+	constructor(props: unknown) {
 		super(props)
 		this.state = { skeletonData: null }
 	}
@@ -99,40 +93,39 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 	}
 
 	// File change listener
-	async componentDidUpdate(prevProps: Readonly<Skeleton3DProps>, prevState: Readonly<Skeleton3DState>): Promise<void> {
+	async componentDidUpdate(_prevProps: Readonly<unknown>, prevState: Readonly<Skeleton3DState>): Promise<void> {
 		// Ignore state changes except for skeleton data
 		if (
 			prevState.skeletonData === this.state.skeletonData &&
-			prevProps.file === this.props.file &&
-			prevProps.reset === this.props.reset &&
-			prevProps.step === this.props.step
+			this.context.prevState.inFile === this.context.inFile &&
+			this.context.prevState.reset === this.context.reset &&
+			this.context.prevState.step === this.context.step
 		) return
 
 		// Update forward button and process this step
-		const btnDisabled = this.props.loading || !this.state.skeletonData || this.state.skeletonData.length < 1
-		if (this.props.step === 1) {
+		const btnDisabled = this.context.loading || !this.state.skeletonData || this.state.skeletonData.length < 1
+		if (this.context.step === 1) {
 			if (API.isDebug) console.log("[Skeleton3D] Updating forward button:", !btnDisabled)
-			this.props.updateForwardBtn({
+			this.context.updateForwardBtn({
 				text: "Generate",
 				enabled: !btnDisabled,
 				click: this.generateClicked.bind(this)
 			})
 
 			// Make API call and set skeleton data
-			const uploadInstance = FileUpload.getInstance()
-			if (API.isDebug) console.log("[Skeleton3D] File:", this.props.file, ", prev file:", prevProps.file,
-				`\n  Step check:`, prevProps.step !== this.props.step,
+			if (API.isDebug) console.log("[Skeleton3D] File:", this.context.inFile, ", prev file:", this.context.prevState.inFile,
+				`\n  Step check:`, this.context.prevState.step !== this.context.step,
 				`\n  Active API call check:`, !this.activeApiCall,
-				`\n  File check:`, prevProps.file !== this.props.file,
-				`\n  Keypoints check:`, (uploadInstance?.state.keypoints ?? "") !== this.keypoints,
+				`\n  File check:`, this.context.prevState.inFile !== this.context.inFile,
+				`\n  Keypoints check:`, (this.context.keypoints ?? "") !== this.keypoints,
 			)
 			if (
-				this.props.file !== null && prevProps.step !== this.props.step && !this.activeApiCall &&
-				((uploadInstance?.state.keypoints ?? "") !== this.keypoints || this.prevFile !== this.props.file)
+				this.context.inFile !== null && this.context.prevState.step !== this.context.step && !this.activeApiCall &&
+				((this.context.keypoints ?? "") !== this.keypoints || this.prevFile !== this.context.inFile)
 			) {
 				if (API.isDebug) console.log("[Skeleton3D] File ready, loading skeleton data...")
-				this.keypoints = uploadInstance?.state.keypoints ?? ""
-				this.prevFile = this.props.file
+				this.keypoints = this.context.keypoints ?? ""
+				this.prevFile = this.context.inFile
 				this.generateSkeleton()
 			}
 		}
@@ -146,25 +139,37 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		return !!(this.canvas && this.scene && this.light && this.camera && this.mainRenderer && this.controls)
 	}
 
+	// Retrieve camera extrinsic matrix
+	private getExtrinsicMatrix(camera: Three.Camera): ExtrinsicMatrix {
+		const matrix = camera.matrixWorldInverse.clone()
+		matrix.transpose() // Convert column-major order to row-major order
+		return [
+			[...matrix.elements.slice(0, 4)],
+			[...matrix.elements.slice(4, 8)],
+			[...matrix.elements.slice(8, 12)]
+		] as ExtrinsicMatrix
+	}
+
 	// Run skeleton generation
 	private async generateSkeleton(): Promise<void> {
-		if (!this.props.file || (API.skeletonModel === "capex" && !this.keypoints)) return
-		this.props.setLoading(true)
+		if (!this.context.inFile || (API.skeletonModel === "capex" && !this.keypoints)) return
+		this.context.setLoading(true)
 		this.setState({ skeletonData: null })
 		if (API.skeletonModel === "capex") {
 			const kps = this.getKeypoints(this.keypoints)
 			this.connections = this.buildConnections(this.keypoints)
-			this.activeApiCall = API.skeleton_capex(await Utils.fileToDataUrl(this.props.file), kps, this.connections).then(data => {
+			this.activeApiCall = API.skeleton_capex(await Utils.fileToDataUrl(this.context.inFile), kps, this.connections).then(data => {
 				this.minmax = data.minmax || []
 				this.setState({ skeletonData: data.skeleton || [] })
-				this.props.setLoading(false)
+				this.context.setLoading(false)
 				this.activeApiCall = null
 			})
 		}
-		else this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.props.file)).then(data => {
+		else this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.context.inFile)).then(data => {
 			this.minmax = data.minmax || []
+			this.connections = data.bones || []
 			this.setState({ skeletonData: data.skeleton || [] })
-			this.props.setLoading(false)
+			this.context.setLoading(false)
 			this.activeApiCall = null
 		})
 	}
@@ -214,32 +219,29 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		this.camera!.position.set(lookX, lookY, lookZ + maxDist)
 		this.cameraRotation = this.camera!.rotation.clone()
 		this.controls!.update()
-		this.origRotation = [this.controls!.getPolarAngle(), this.controls!.getAzimuthalAngle()]
+		this.srcCamera = this.getExtrinsicMatrix(this.camera!)
 		if (API.isDebug) console.log("[Skeleton3D] Camera position:", this.camera?.position, ", maxDist:", maxDist, ", minmax:", this.minmax)
 	}
 
 	// User clicked the generate button
 	private generateClicked(): void {
 		let currSkel = this.state.skeletonData || []
+
+		// Remove 3D coords and un-centralize 2D coords when using CapeX
 		if (API.skeletonModel === "capex") {
-			// Remove 3D coords and un-centralize 2D coords
 			const img = document.querySelector("#preview") as HTMLImageElement
 			const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
 			currSkel = this.state.skeletonData?.map(([x, y]) => [x + Math.floor(imgWidth / 2), y + Math.floor(imgHeight / 2), 0]) || []
 		}
 
-		// Transform skeleton coords with camera rotation
-		const targetSkel: Point3D[] = currSkel.map(([x, y, z]) => {
-			const vec = new Three.Vector3(x, y, z)
-			vec.applyAxisAngle(new Three.Vector3(1, 0, 0), this.controls!.getPolarAngle() - this.origRotation[0])
-			vec.applyAxisAngle(new Three.Vector3(0, 1, 0), this.controls!.getAzimuthalAngle() - this.origRotation[1])
-			vec.projectOnPlane(new Three.Vector3(0, 0, 1)).round()
-			if (API.isDebug) console.log("[Skeleton3D] Vector projection:", vec, ", orig coords:", [x, y, z])
-			return [vec.x, vec.y, vec.z]
+		// Extract camera properties and execute callback
+		const targetCamera = this.getExtrinsicMatrix(this.camera!)
+		this.context.updateState({
+			skeleton: currSkel,
+			bones: this.connections,
+			srcCamera: this.srcCamera,
+			targetCamera
 		})
-
-		// Pass skeleton coords to next component
-		this.props.onGenerateClicked(currSkel, targetSkel)
 	}
 
 	// Reset camera position and look direction
@@ -257,7 +259,7 @@ export default class Skeleton3D extends Component<Skeleton3DProps, Skeleton3DSta
 		this.camera!.position.set(lookX, lookY, lookZ + maxDist)
 		this.camera!.rotation.set(this.cameraRotation?.x ?? 0, this.cameraRotation?.y ?? 0, this.cameraRotation?.z ?? 0)
 		this.controls!.update()
-		this.origRotation = [this.controls!.getPolarAngle(), this.controls!.getAzimuthalAngle()]
+		this.srcCamera = this.getExtrinsicMatrix(this.camera!)
 	}
 
 	// Retrieve keypoint list from input
