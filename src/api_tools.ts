@@ -68,7 +68,7 @@ export interface SAM2Input {
 
 export interface MeTRAbsInput {
 	image: string,
-	bbox?: BoundingBox
+	bbox?: BoundingBox | null
 }
 
 export interface CapeXInput {
@@ -172,10 +172,11 @@ export default class API {
 	/**
 	 * Creates a 3D skeleton for the given image via MeTRAbs
 	 * @param image The input image as base64
+	 * @param bbox The bounding box of the object on the image
 	 * @returns The detected keypoints
 	 */
-	public static async skeleton(image: string): Promise<MeTRAbsResponse> {
-		const resp = await this.fetch("/skeleton", { image })
+	public static async skeleton(image: string, bbox?: BoundingBox | null): Promise<MeTRAbsResponse> {
+		const resp = await this.fetch("/skeleton", { image, bbox })
 		if (resp?.status !== 200) return { skeleton: [], minmax: [], bones: [] }
 		return resp.json
 	}

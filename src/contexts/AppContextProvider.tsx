@@ -1,5 +1,5 @@
 import React, { createContext } from "react"
-import { ExtrinsicMatrix, Point2D, Point3D } from "../api_tools"
+import { BoundingBox, ExtrinsicMatrix, Point2D, Point3D } from "../api_tools"
 
 
 // App states
@@ -14,6 +14,8 @@ export interface AppState {
 	srcCamera: ExtrinsicMatrix | null,
 	/** Target camera view */
 	targetCamera: ExtrinsicMatrix | null,
+	/** Bounding box (for MeTRAbs) */
+	bbox: BoundingBox | null,
 	/** Loading state */
 	loading: boolean,
 	/** Reset state */
@@ -80,6 +82,7 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 		bones: null,
 		srcCamera: null,
 		targetCamera: null,
+		bbox: null,
 		loading: false,
 		reset: false,
 		keypoints: "",

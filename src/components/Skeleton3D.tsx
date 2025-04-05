@@ -165,7 +165,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 				this.activeApiCall = null
 			})
 		}
-		else this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.context.inFile)).then(data => {
+		else this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.context.inFile), this.context.bbox).then(data => {
 			this.minmax = data.minmax || []
 			this.connections = data.bones || []
 			this.setState({ skeletonData: data.skeleton || [] })

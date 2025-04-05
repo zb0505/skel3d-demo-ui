@@ -68,9 +68,7 @@ export default class App extends Component<unknown, unknown, AppState> {
 						<Skeleton3D />
 					</div>
 					<div className="carousel-item mb-5 mb-lg-0">
-						<DemoOutput {...this.context}
-							setLoading={loading => this.context.updateState({ loading })} step={this.context.step}
-							updateForwardBtn={this.context.updateForwardBtn} />
+						<DemoOutput />
 					</div>
 				</div>
 				<button className="btn btn-secondary fab fab-left" type="button" data-bs-target="#main" data-bs-slide="prev"

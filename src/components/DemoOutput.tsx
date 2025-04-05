@@ -1,30 +1,17 @@
 import { Component, ReactNode } from "react"
-import API, { Utils, Point3D, Point2D, ExtrinsicMatrix } from "../api_tools"
-import { AppState } from "../App"
+import API, { Utils } from "../api_tools"
 import ToastUtils from "../toast_tools"
 import { AppContext } from "../contexts/AppContextProvider"
 
 
-// Component props and states
-interface DemoOutputProps {
-	inFile: Blob | null,
-	skeleton: Point3D[] | null,
-	bones: Point2D[] | null,
-	srcCamera: ExtrinsicMatrix | null,
-	targetCamera: ExtrinsicMatrix | null,
-	loading: boolean,
-	step: number,
-	setLoading: (loading: boolean) => void,
-	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
-}
-
+// Component states
 interface DemoOutputState {
 	outputUrl: string
 }
 
 
 // Demo output class
-export default class DemoOutput extends Component<DemoOutputProps, DemoOutputState> {
+export default class DemoOutput extends Component<unknown, DemoOutputState> {
 	// App context
 	static contextType = AppContext
 	declare context: React.ContextType<typeof AppContext>
@@ -33,7 +20,7 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 	private activeApiCall: Promise<unknown> | null = null
 	
 	// Constructor
-	constructor(props: DemoOutputProps) {
+	constructor(props: unknown) {
 		super(props)
 		this.state = { outputUrl: "" }
 	}
@@ -44,7 +31,7 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 	}
 
 	// Query API when both input files are ready
-	async componentDidUpdate(prevProps: Readonly<DemoOutputProps>): Promise<void> {
+	async componentDidUpdate(): Promise<void> {
 		// Ignore state changes except for input image and skeleton changes
 		if (
 			this.context.prevState.inFile === this.context.inFile &&
@@ -56,7 +43,7 @@ export default class DemoOutput extends Component<DemoOutputProps, DemoOutputSta
 		) return
 
 		// Update forward button when step changes
-		if (prevProps.step !== this.context.step && this.context.step === 2) {
+		if (this.context.prevState.step !== this.context.step && this.context.step === 2) {
 			this.context.updateForwardBtn({ enabled: false })
 		}
 

@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from "react"
 import API, { Point2D, Utils } from "../api_tools"
 import ToastUtils from "../toast_tools"
+import { AppContext } from "../contexts/AppContextProvider"
 
 
 // Component props and states
@@ -28,6 +29,10 @@ export interface Position {
 
 // Keypoint marker class
 export default class KeypointMarker extends Component<KeypointMarkerProps, KeypointMarkerStates> {
+	// App context
+	static contextType = AppContext
+	declare context: React.ContextType<typeof AppContext>
+	
 	// Fields
 	private markerTimeout: ReturnType<typeof setTimeout> | null = null
 	private activeApiCall: Promise<unknown> | null = null
@@ -93,6 +98,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 					ToastUtils.makeToast("Failed to create segmentation", "fail")
 					this.removePoints()
 				}
+				else this.context.updateState({ bbox: resp.bbox })
 				if (API.isDebug) console.log("[KeypointMarker] Segmentation complete")
 				this.image?.classList.remove("placeholder")
 				this.activeApiCall = null
