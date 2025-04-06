@@ -126,9 +126,10 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 
 	/** Resets the context state */
 	private resetState(): void {
-		this.updatedState = { ...AppContextProvider.defaultState }
-		this.setState(AppContextProvider.defaultState)
+		this.updatedState = { ...AppContextProvider.defaultState, reset: true }
+		this.setState({ ...AppContextProvider.defaultState, reset: true })
 		this.stateChanges = null
+		console.log("[AppContextProvider] State reset, updatedState:", this.updatedState)
 	}
 
 	/** Context state update callback */

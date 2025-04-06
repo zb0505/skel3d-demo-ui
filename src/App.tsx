@@ -2,7 +2,7 @@ import { Component, ReactNode } from "react"
 import FileUpload from "./components/FileUpload"
 import Skeleton3D from "./components/Skeleton3D"
 import DemoOutput from "./components/DemoOutput"
-import { Point3D, Utils } from "./api_tools"
+import API, { Point3D, Utils } from "./api_tools"
 import { AppContext } from "./contexts/AppContextProvider"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "./App.css"
@@ -37,6 +37,7 @@ export default class App extends Component<unknown, unknown, AppState> {
 
 	// Forward button click event
 	private onForwardBtnClicked(): void {
+		if (API.isDebug) console.log("[App] Forward button clicked, context:", this.context)
 		if (this.context.step < 2) this.context.updateState({ step: (this.context.step + 1) % 3 })
 		this.context.forwardBtn.click()
 	}

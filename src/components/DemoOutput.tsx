@@ -60,17 +60,18 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 				text: "Start again",
 				enabled: !this.context.loading,
 				click: () => {
+					this.context.resetState()
 					const carousel = bootstrap.Carousel.getOrCreateInstance("#main", { wrap: false, keyboard: false, touch: false })
 					carousel.to(0)
-					this.context.resetState()
 				}
 			})
 			// If all props are ready, make API call
 			if (this.propsReady() && !this.activeApiCall) {
 				if (API.isDebug) console.log("[DemoOutput] Generating target view...")
+				const input = await Utils.fileToDataUrl(this.context.inFile!)
 				this.context.setLoading(true)
 				this.activeApiCall ??= API.skel3D(
-					await Utils.fileToDataUrl(this.context.inFile!),
+					input,
 					this.context.skeleton!,
 					this.context.bones!,
 					this.context.srcCamera!,
