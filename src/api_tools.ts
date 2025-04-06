@@ -106,7 +106,7 @@ export interface CapeXResponse {
 }
 
 export interface Skel3DResponse {
-	prediction: string | null
+	predictions: string[] | null
 }
 
 // API endpoint definitions
@@ -205,9 +205,9 @@ export default class API {
 	public static async skel3D(
 		image: string, joints: Point3D[], bones: Point2D[],
 		srcCamera: ExtrinsicMatrix, targetCamera: ExtrinsicMatrix
-	): Promise<Skel3DResponse["prediction"]> {
+	): Promise<Skel3DResponse["predictions"]> {
 		const resp = await this.fetch("/skel3d", { image, joints, bones, src_camera: srcCamera, target_camera: targetCamera })
-		if (resp?.status !== 200) return ""
-		return resp.json.prediction
+		if (resp?.status !== 200) return []
+		return resp.json.predictions
 	}
 }

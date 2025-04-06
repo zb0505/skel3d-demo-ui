@@ -3,10 +3,9 @@ import FileUpload from "./components/FileUpload"
 import Skeleton3D from "./components/Skeleton3D"
 import DemoOutput from "./components/DemoOutput"
 import { Point3D, Utils } from "./api_tools"
-import * as bootstrap from "bootstrap"
+import { AppContext } from "./contexts/AppContextProvider"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "./App.css"
-import AppContextProvider, { AppContext } from "./contexts/AppContextProvider"
 
 
 // App states
@@ -38,16 +37,8 @@ export default class App extends Component<unknown, unknown, AppState> {
 
 	// Forward button click event
 	private onForwardBtnClicked(): void {
+		if (this.context.step < 2) this.context.updateState({ step: (this.context.step + 1) % 3 })
 		this.context.forwardBtn.click()
-		this.context.updateState({ step: (this.context.step + 1) % 3 })
-		if (this.context.updatedState.step == 2) this.context.updateForwardBtn({
-			text: "Start again",
-			click: () => {
-				const carousel = bootstrap.Carousel.getOrCreateInstance("#main", { wrap: false, keyboard: false, touch: false })
-				carousel.to(0)
-				this.context.updateState({ ...AppContextProvider.defaultState })
-			}
-		})
 	}
 
 	// Update tooltips on the page

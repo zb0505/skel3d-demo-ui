@@ -47,16 +47,18 @@ export type AppStateChanges = {
 export type AppContextServices = AppState & {
 	/** Previous context state */
 	prevState: AppState,
-	/** Context state that updates immediately */
-	updatedState: AppState,
 	/** List of state changes */
 	stateChanges: Partial<AppStateChanges> | null,
-	/** Set loading state */
+	/** Latest context state that is updated immediately */
+	updatedState: AppState,
+	/** Sets loading state */
 	setLoading: (loading: boolean) => void,
-	/** Update context state */
+	/** Updates context state */
 	updateState: (newState: Partial<AppState>) => void,
-	/** Update forward button state */
-	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void
+	/** Updates forward button state */
+	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void,
+	/** Resets context state */
+	resetState: () => void
 }
 
 
@@ -65,6 +67,7 @@ export const AppContext = createContext({} as AppContextServices)
 
 // App context provider
 export default class AppContextProvider extends React.Component<React.PropsWithChildren<unknown>, AppState> {
+	// #region Fields
 	/** Context state that updates immediately */
 	private updatedState: AppState
 
@@ -92,21 +95,27 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 			click: () => {}
 		}
 	}
+	// #endregion
 	
-	// Constructor
+	// #region Constructor
+	/** Component constructor */
 	constructor(props: React.PropsWithChildren<unknown>) {
 		super(props)
 		this.state = this.updatedState = this.prevState = { ...AppContextProvider.defaultState }
 	}
-
-	// Update state
+	// #endregion
+	
+	// #region Methods
+	/** Updates the context state */
 	private updateState(newState: Partial<AppState>): void {
-		this.setState(prevState => (this.updatedState = { ...prevState, ...newState }))
+		this.updatedState = { ...this.updatedState, ...newState }
+		this.setState(prevState => ({ ...prevState, ...newState }))
 	}
 
-	// Update forward button state
+	/** Updates the forward button state */
 	private updateForwardBtn(newState: Partial<AppState["forwardBtn"]>): void {
-		this.setState(prevState => (this.updatedState = {
+		this.updatedState = { ...this.updatedState, forwardBtn: { ...this.updatedState.forwardBtn, ...newState } }
+		this.setState(prevState => ({
 			...prevState,
 			forwardBtn: {
 				...prevState.forwardBtn,
@@ -115,7 +124,14 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 		}))
 	}
 
-	// Component updated event
+	/** Resets the context state */
+	private resetState(): void {
+		this.updatedState = { ...AppContextProvider.defaultState }
+		this.setState(AppContextProvider.defaultState)
+		this.stateChanges = null
+	}
+
+	/** Context state update callback */
 	componentDidUpdate(_prevProps: Readonly<React.PropsWithChildren<unknown>>, prevState: Readonly<AppState>): void {
 		// Store the previous state
 		this.prevState = prevState
@@ -132,7 +148,7 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 		}
 	}
 	
-	// Render method
+	/** Component render method */
 	render(): React.JSX.Element {
 		const services: AppContextServices = {
 			...this.state,
@@ -141,7 +157,8 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 			updatedState: this.updatedState,
 			setLoading: (loading: boolean) => this.updateState({ loading }),
 			updateState: (newState: Partial<AppState>) => this.updateState(newState),
-			updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => this.updateForwardBtn(newState)
+			updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => this.updateForwardBtn(newState),
+			resetState: () => this.resetState()
 		}
 
 		return <AppContext.Provider value={services}>{this.props.children}</AppContext.Provider>

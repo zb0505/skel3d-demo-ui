@@ -29,25 +29,43 @@ export interface Position {
 
 // Keypoint marker class
 export default class KeypointMarker extends Component<KeypointMarkerProps, KeypointMarkerStates> {
+	// #region Fields
 	// App context
 	static contextType = AppContext
 	declare context: React.ContextType<typeof AppContext>
 	
-	// Fields
+	/** Segmentation API call timeout */
 	private markerTimeout: ReturnType<typeof setTimeout> | null = null
-	private activeApiCall: Promise<unknown> | null = null
-	private container: HTMLDivElement | null = null
-	private image: HTMLImageElement | null = null
-	private positive: Point2D[] = []
-	private negative: Point2D[] = []
 	
-	// Constructor
+	/** Currently active API call */
+	private activeApiCall: Promise<unknown> | null = null
+	
+	/** Marker container */
+	private container: HTMLDivElement | null = null
+	
+	/** Image element */
+	private image: HTMLImageElement | null = null
+	
+	/** Points on the image (including their HTML elements) */
+	private points: [...Point2D, HTMLSpanElement][] = []
+	
+	/** Positive points */
+	private positive: Point2D[] = []
+	
+	/** Negative points */
+	private negative: Point2D[] = []
+	// #endregion
+	
+	// #region Constructor
+	/** Component constructor */
 	constructor(props: KeypointMarkerProps) {
 		super(props)
 		this.state = { markerType: "pos" }
 	}
-
-	// Get image true position relative to the viewport
+	// #endregion
+	
+	// #region Methods
+	/** Gets element position relative to the viewport */
 	private getElemPosition(element: HTMLElement): Position {
 		const box = element.getBoundingClientRect()
 		return {
@@ -62,7 +80,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		}
 	}
 
-	// Validate point location
+	/** Validates the location of the given point based on the position of the given image element */
 	private validatePoint(point: number[], image: HTMLImageElement): boolean {
 		const box = this.getElemPosition(image)
 		const imgLeft = box.left, imgRight = box.right
@@ -80,7 +98,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		return imgLeft <= point[0] && imgRight >= point[0] && imgTop <= point[1] && imgBottom >= point[1]
 	}
 
-	// New point added
+	/** New point added callback */
 	private onPointAdded(): void {
 		if (this.activeApiCall) return
 		if (this.markerTimeout) clearTimeout(this.markerTimeout)
@@ -106,17 +124,31 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		}, 2000)
 	}
 
-	// Reset points
+	/** Removes the latest point and runs segmentation as if a point was added */
+	private async undoLastPoint(): Promise<void> {
+		if (this.points.length < 1) return
+		if (this.activeApiCall) return this.activeApiCall.then(() => this.undoLastPoint())
+		if (this.markerTimeout) clearTimeout(this.markerTimeout)
+		if (API.isDebug) console.log("[KeypointMarker] Undo last point")
+		const lastPoint = this.points.pop()
+		if (!lastPoint) return
+		this.positive = this.positive.filter(p => p[0] !== lastPoint[0] && p[1] !== lastPoint[1])
+		this.negative = this.negative.filter(p => p[0] !== lastPoint[0] && p[1] !== lastPoint[1])
+		lastPoint[2].remove()
+		this.onPointAdded()
+	}
+
+	/** Removes all points */
 	private async removePoints(): Promise<void> {
 		if (this.container) this.container.querySelectorAll(".point").forEach(p => p.remove())
 		if (this.activeApiCall) return this.activeApiCall.then(() => this.removePoints())
 		this.props.onPreviewUpdated("")
+		this.points = []
 		this.positive = []
 		this.negative = []
-		return Promise.resolve()
 	}
 
-	// Component rendered event
+	/** Component mounted (rendered) callback */
 	componentDidMount(): void {
 		// Update tooltips
 		Utils.updateTooltips()
@@ -169,11 +201,12 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			point.style.top = `${relY}%`
 			point.style.left = `${relX}%`
 			container.appendChild(point)
+			this.points.push([...coords, point])
 			this.onPointAdded()
 		})
 	}
 
-	// File change listener
+	/** Context and props update callback */
 	componentDidUpdate(prevProps: Readonly<KeypointMarkerProps>): void {
 		// Re-render triggered, re-select container
 		this.container = document.querySelector("div.kp-marker .container")
@@ -185,7 +218,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		this.removePoints()
 	}
 
-	// Markup
+	/** Component render method */
 	render(): ReactNode {
 		return (<>
 			<div className="kp-marker placeholder-glow">
@@ -204,6 +237,10 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 					onClick={() => this.setState({ markerType: "neg" })}>
 					<i className="fa-solid fa-minus"></i>
 				</button>
+				<button className="btn btn-ghost text-secondary" onClick={() => this.undoLastPoint()}
+					data-bs-toggle="tooltip" data-bs-title="Undo last point">
+					<i className="fa-solid fa-undo"></i>
+				</button>
 				<button className="btn btn-ghost text-danger" onClick={() => this.removePoints()}
 					data-bs-toggle="tooltip" data-bs-title="Delete points">
 					<i className="fa-solid fa-trash"></i>
@@ -211,4 +248,5 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			</div>
 		</>)
 	}
+	// #endregion
 }

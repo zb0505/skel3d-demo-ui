@@ -2,35 +2,41 @@ import { Component, ReactNode } from "react"
 import API, { Utils } from "../api_tools"
 import ToastUtils from "../toast_tools"
 import { AppContext } from "../contexts/AppContextProvider"
+import * as bootstrap from "bootstrap"
 
 
 // Component states
 interface DemoOutputState {
-	outputUrl: string
+	outputUrls: string[]
 }
 
 
-// Demo output class
+/** Component for showing model output images */
 export default class DemoOutput extends Component<unknown, DemoOutputState> {
+	// #region Fields
 	// App context
 	static contextType = AppContext
 	declare context: React.ContextType<typeof AppContext>
 	
-	// Store active API call to avoid calling it multiple times
+	/** Currently active API call */
 	private activeApiCall: Promise<unknown> | null = null
+	// #endregion
 	
-	// Constructor
+	// #region Constructor
+	/** Component constructor */
 	constructor(props: unknown) {
 		super(props)
-		this.state = { outputUrl: "" }
+		this.state = { outputUrls: [] }
 	}
+	// #endregion
 
-	// Check if both input files are ready
+	// #region Methods
+	/** Checks if all input properties are ready */
 	private propsReady(): boolean {
 		return !!(this.context.inFile && this.context.skeleton && this.context.bones && this.context.srcCamera && this.context.targetCamera)
 	}
 
-	// Query API when both input files are ready
+	/** Context and state update callback */
 	async componentDidUpdate(): Promise<void> {
 		// Ignore state changes except for input image and skeleton changes
 		if (
@@ -49,35 +55,53 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 
 		// If this is the current view, update the output image
 		if (this.context.step === 2) {
+			// Update forward button
+			this.context.updateForwardBtn({
+				text: "Start again",
+				enabled: !this.context.loading,
+				click: () => {
+					const carousel = bootstrap.Carousel.getOrCreateInstance("#main", { wrap: false, keyboard: false, touch: false })
+					carousel.to(0)
+					this.context.resetState()
+				}
+			})
 			// If all props are ready, make API call
 			if (this.propsReady() && !this.activeApiCall) {
 				if (API.isDebug) console.log("[DemoOutput] Generating target view...")
 				this.context.setLoading(true)
-				this.activeApiCall = API.skel3D(
+				this.activeApiCall ??= API.skel3D(
 					await Utils.fileToDataUrl(this.context.inFile!),
 					this.context.skeleton!,
 					this.context.bones!,
 					this.context.srcCamera!,
 					this.context.targetCamera!
-				).then(output => {
-					if (!output) return ToastUtils.makeToast("Failed to generate target view", "fail")
-					else this.setState({ outputUrl: output })
+				).then(outputs => {
+					if (!outputs) return ToastUtils.makeToast("Failed to generate target view", "fail")
+					else this.setState({ outputUrls: outputs })
 					this.context.updateForwardBtn({ enabled: true })
 					this.context.setLoading(false)
-					if (API.isDebug) console.log("[DemoOutput] Target view generation successful:", !!output)
+					if (API.isDebug) console.log("[DemoOutput] Target view generation successful:", !!outputs)
 					this.activeApiCall = null
 				})
 			}
 		}
 	}
 	
-	// Markup
+	/** Component render method */
 	render(): ReactNode {
 		return (
 			<div className="col">
-				<h4 className="mb-2">Model output</h4>
-				<img id="output" src={this.state.outputUrl || "/src/assets/transparent.png"} className={(this.context.loading ? "placeholder " : "") + "bordered rounded output"}></img>
+				<h4 className="mb-2">Model outputs</h4>
+				<div className="d-flex flex-wrap justify-content-center mb-3">
+					{ this.state.outputUrls.length < 1 || this.context.loading ?
+						<img src="/src/assets/transparent.png" className="placeholder bordered rounded output" /> :
+						this.state.outputUrls.map((url, i) => (
+							<img key={i} src={url} className={(i % 2 ? "ms-sm-2 " : "") + " mb-2 bordered rounded output"} />
+						))
+					}
+				</div>
 			</div>
 		)
 	}
+	// #endregion
 }

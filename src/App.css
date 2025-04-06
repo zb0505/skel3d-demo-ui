@@ -12,9 +12,9 @@
 	border: 1px solid gray;
 	border-radius: 10px;
 }
-@media screen and (min-aspect-ratio: 4 / 3) {
+@media screen and (min-width: 576px) {
 	.output {
-		width: 50%;
+		width: 45%;
 	}
 }
 .preview[src=""], .output[src=""] {

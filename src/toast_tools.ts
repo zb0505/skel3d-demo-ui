@@ -7,7 +7,7 @@ export type ToastType = "info" | "success" | "warn" | "fail"
 
 /** Toast utilities */
 export default class ToastUtils {
-	/** NodeJS `EventEmitter.once` hook implementation */
+	/** NodeJS `EventEmitter.once` implementation */
 	static once(element: Element | null, event: string, listener: (event: Event) => void) {
 		const handler = (args: Event) => {
 			listener(args)

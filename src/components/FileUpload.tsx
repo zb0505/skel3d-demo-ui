@@ -14,18 +14,25 @@ interface FileUploadState {
 }
 
 
-// File upload class
+/** Component for file input, segmentation and keypoints */
 export default class FileUpload extends Component<unknown, FileUploadState> {
+	// #region Fields
 	// App context
 	static contextType = AppContext
 	declare context: React.ContextType<typeof AppContext>
 	
-	// Fields
+	/** State copy that is updated immediately */
 	private stateCopy: FileUploadState
+
+	/** File input element */
 	private fileInput: HTMLInputElement | null = null
+
+	/** Keypoints example (for CapeX) */
 	private readonly kpExample = "head\nbody\n- left elbow\n-- left hand\n- right elbow\n-- right hand\nhips\n- left knee\n-- left foot\n- right knee\n-- right foot"
+	// #endregion
 	
-	// Constructor
+	// #region Constructor
+	/** Component constructor */
 	constructor(props: unknown) {
 		super(props)
 		this.state = this.stateCopy = {
@@ -34,11 +41,13 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 			exampleShown: false
 		}
 	}
+	// #endregion
 
-	// Update state
+	// #region Methods
+	/** Updates the current component state */
 	private updateState(newState: Partial<FileUploadState>): void {
 		this.stateCopy = { ...this.stateCopy, ...newState }
-		this.setState(this.stateCopy)
+		this.setState({ ...this.stateCopy })
 
 		// Update forward button state
 		this.context.updateForwardBtn({
@@ -46,7 +55,7 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 		})
 	}
 
-	// Component rendered event
+	/** Component mounted (rendered) callback */
 	componentDidMount(): void {
 		// Update tooltips
 		Utils.updateTooltips()
@@ -76,7 +85,7 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 		})
 	}
 
-	// Component updated event
+	/** Context and state update callback */
 	componentDidUpdate(_prevProps: Readonly<unknown>, prevState: Readonly<FileUploadState>): void {
 		// Ignore all changes except for reset and step props and preview state
 		if (
@@ -97,7 +106,8 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 
 		// Handle step change
 		else if (this.context.step === 0) {
-			const forwardEnabled = !!(this.stateCopy.inputUrl && this.stateCopy.preview && (API.skeletonModel !== "capex" || this.context.updatedState.keypoints))
+			const forwardEnabled = !!(this.stateCopy.inputUrl && this.stateCopy.preview &&
+				(API.skeletonModel !== "capex" || this.context.updatedState.keypoints))
 			this.context.updateForwardBtn({
 				text: "Next",
 				enabled: forwardEnabled
@@ -110,7 +120,7 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 		}
 	}
 
-	// Markup
+	/** Component render method */
 	render(): ReactNode {
 		// Modal body markup
 		const modalBody = (<>
@@ -159,4 +169,5 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 			</div>
 		</>)
 	}
+	// #endregion
 }

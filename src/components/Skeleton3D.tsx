@@ -20,43 +20,72 @@ interface Skeleton3DState {
 }
 
 
-// Skeleton 3D viewer class
+/** Component for showing 3D skeleton */
 export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
+	// #region Fields
 	// App context
 	static contextType = AppContext
 	declare context: React.ContextType<typeof AppContext>
 	
-	// 3D rendering helpers
+	/** 3D viewer canvas element */
 	private canvas: HTMLCanvasElement | null = null
+	
+	/** Three.js scene for rendering */
 	private scene: Three.Scene | null = null
+	
+	/** Three.js light */
 	private light: Three.AmbientLight | null = null
+	
+	/** Perspective camera for viewing the scene */
 	private camera: Three.PerspectiveCamera | null = null
-	private mainRenderer: Three.WebGLRenderer | null = null
+	
+	/** 3D renderer */
+	private renderer: Three.WebGLRenderer | null = null
+	
+	/** Orbit controls for camera manipulation */
 	private controls: OrbitControls | null = null
+	
+	/** Saved camera rotation for resetting camera */
 	private cameraRotation: Three.Euler | null = null
+	
+	/** Skeleton bones */
 	private connections: CapeXInput["skeleton"] = []
+	
+	/** Min-max values for the skeleton coords */
 	private minmax: NonNullable<MeTRAbsResponse["minmax"]> = []
+	
+	/** Currently active API call */
 	private activeApiCall: Promise<unknown> | null = null
+	
+	/** Source camera extrinsic matrix */
 	private srcCamera: ExtrinsicMatrix | null = null
+	
+	/** Last uploaded file, used to determine whether the file changed since skeleton generation */
 	private prevFile: Blob | null = null
+	
+	/** Textual keypoints for CapeX */
 	private keypoints: string = ""
+	// #endregion
 
 
-	// Class constructor
+	// #region Constructor
+	/** Component constructor */
 	constructor(props: unknown) {
 		super(props)
 		this.state = { skeletonData: null }
 	}
-
-	// Prepare canvas and 3D library
+	// #endregion
+	
+	// #region Methods
+	/** Component mounted (rendered) callback, prepares 3D library and tools */
 	componentDidMount(): void {
 		// Prepare scene and renderer
 		const height = window.innerHeight - 300, width = window.innerWidth - 100
 		const elem = this.canvas = document.querySelector("canvas#skeleton") as HTMLCanvasElement
 		const scene = this.scene = new Three.Scene()
 		const light = this.light = new Three.AmbientLight()
-		const camera = this.camera = new Three.PerspectiveCamera(75, width / height, 0.1, 1000)
-		const renderer = this.mainRenderer = new Three.WebGLRenderer({ canvas: elem, antialias: true })
+		const camera = this.camera = new Three.PerspectiveCamera(75, width / height, 0.001, 100000)
+		const renderer = this.renderer = new Three.WebGLRenderer({ canvas: elem, antialias: true })
 		const controls = this.controls = new OrbitControls(camera, elem)
 		
 		// Component settings
@@ -82,17 +111,17 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		})
 	}
 
-	// Clean up 3D renderer and scene
+	/** Component unmount callback, cleans up 3D renderer and scene */
 	componentWillUnmount(): void {
-		this.mainRenderer?.clear()
-		this.mainRenderer?.dispose()
+		this.renderer?.clear()
+		this.renderer?.dispose()
 		this.controls?.disconnect()
 		this.controls?.dispose()
 		this.scene?.clear()
 		this.camera?.clear()
 	}
 
-	// File change listener
+	/** Context and state update callback */
 	async componentDidUpdate(_prevProps: Readonly<unknown>, prevState: Readonly<Skeleton3DState>): Promise<void> {
 		// Ignore state changes except for skeleton data
 		if (
@@ -134,12 +163,12 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		if (prevState.skeletonData !== this.state.skeletonData) this.skeletonDataReady()
 	}
 
-	// Check if 3D tools are ready
+	/** Checks if 3D tools are ready */
 	private is3DReady(): boolean {
-		return !!(this.canvas && this.scene && this.light && this.camera && this.mainRenderer && this.controls)
+		return !!(this.canvas && this.scene && this.light && this.camera && this.renderer && this.controls)
 	}
 
-	// Retrieve camera extrinsic matrix
+	/** Retrieves the extrinsic matrix of the given camera */
 	private getExtrinsicMatrix(camera: Three.Camera): ExtrinsicMatrix {
 		const matrix = camera.matrixWorldInverse.clone()
 		matrix.transpose() // Convert column-major order to row-major order
@@ -150,7 +179,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		] as ExtrinsicMatrix
 	}
 
-	// Run skeleton generation
+	/** Runs skeleton generation API call */
 	private async generateSkeleton(): Promise<void> {
 		if (!this.context.inFile || (API.skeletonModel === "capex" && !this.keypoints)) return
 		this.context.setLoading(true)
@@ -174,7 +203,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		})
 	}
 
-	// Skeleton data ready handler
+	/** Skeleton data ready callback */
 	private skeletonDataReady(): void {
 		if (API.isDebug) console.log("[Skeleton3D] Skeleton data ready:", this.state.skeletonData && this.is3DReady(), ", rendering", this.state.skeletonData?.length, "points")
 
@@ -216,14 +245,15 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		}
 
 		// Update camera position
-		this.camera!.position.set(lookX, lookY, lookZ + maxDist)
+		this.camera!.position.set(lookX, -lookY, lookZ - maxDist)
 		this.cameraRotation = this.camera!.rotation.clone()
+		this.camera!.lookAt(lookX, lookY, lookZ)
 		this.controls!.update()
 		this.srcCamera = this.getExtrinsicMatrix(this.camera!)
 		if (API.isDebug) console.log("[Skeleton3D] Camera position:", this.camera?.position, ", maxDist:", maxDist, ", minmax:", this.minmax)
 	}
 
-	// User clicked the generate button
+	/** Generate button click callback */
 	private generateClicked(): void {
 		let currSkel = this.state.skeletonData || []
 
@@ -244,7 +274,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		})
 	}
 
-	// Reset camera position and look direction
+	/** Resets camera position and look direction */
 	private resetCamera(): void {
 		// Check if both 3D and min-max values are ready
 		if (this.minmax.length < 1 || !this.is3DReady()) return
@@ -258,16 +288,17 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		// Set camera properties and update controls
 		this.camera!.position.set(lookX, lookY, lookZ + maxDist)
 		this.camera!.rotation.set(this.cameraRotation?.x ?? 0, this.cameraRotation?.y ?? 0, this.cameraRotation?.z ?? 0)
+		this.camera!.lookAt(lookX, lookY, lookZ)
 		this.controls!.update()
 		this.srcCamera = this.getExtrinsicMatrix(this.camera!)
 	}
 
-	// Retrieve keypoint list from input
+	/** Retrieves the keypoint list from the input string */
 	private getKeypoints(input: string): string[] {
 		return input.split(/\n-*\s*/g).map(line => line.trim())
 	}
 
-	// Traverse tree and collect connections
+	/** Traverses the given tree and collects connections */
 	private traverse(node: TreeNode | null, parent: TreeNode, keypoints: string[]): [a: number, b: number][] {
 		if (!node) return []
 		if (API.isDebug) console.log("[Skeleton3D] Traversing:", node.kp, ", parent:", parent.kp)
@@ -278,7 +309,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		]
 	}
 
-	// Build keypoint graph to connect points
+	/** Builds the keypoint graph to connect points */
 	private buildConnections(input: string): CapeXInput["skeleton"] {
 		// List of keypoints
 		const keypoints = this.getKeypoints(input)
@@ -322,7 +353,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		return connections
 	}
 	
-	// Markup
+	/** Component render method */
 	render(): ReactNode {
 		return (
 			<div className="d-flex flex-column align-items-center placeholder-glow">
@@ -338,4 +369,5 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 			</div>
 		)
 	}
+	// #endregion
 }
