@@ -96,6 +96,7 @@ export interface SAM2Response {
 export interface MeTRAbsResponse {
 	bones: Point2D[] | null,
 	skeleton: Point3D[] | null,
+	original: Point3D[] | null,
 	minmax: [min: number, max: number][] | null
 }
 
@@ -177,7 +178,7 @@ export default class API {
 	 */
 	public static async skeleton(image: string, bbox?: BoundingBox | null): Promise<MeTRAbsResponse> {
 		const resp = await this.fetch("/skeleton", { image, bbox })
-		if (resp?.status !== 200) return { skeleton: [], minmax: [], bones: [] }
+		if (resp?.status !== 200) return { skeleton: [], original: [], minmax: [], bones: [] }
 		return resp.json
 	}
 

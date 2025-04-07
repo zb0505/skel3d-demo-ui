@@ -48,6 +48,9 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 	/** Saved camera rotation for resetting camera */
 	private cameraRotation: Three.Euler | null = null
 	
+	/** Skeleton joints' coordinates without modification for preview */
+	//private skeleton: MeTRAbsResponse["original"] | null = null
+	
 	/** Skeleton bones */
 	private connections: CapeXInput["skeleton"] = []
 	
@@ -189,6 +192,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 			this.connections = this.buildConnections(this.keypoints)
 			this.activeApiCall = API.skeleton_capex(await Utils.fileToDataUrl(this.context.inFile), kps, this.connections).then(data => {
 				this.minmax = data.minmax || []
+				//this.skeleton = data.original?.map(xy => [...xy, 0]) || []
 				this.setState({ skeletonData: data.skeleton || [] })
 				this.context.setLoading(false)
 				this.activeApiCall = null
@@ -196,6 +200,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		}
 		else this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.context.inFile), this.context.bbox).then(data => {
 			this.minmax = data.minmax || []
+			//this.skeleton = data.original || []
 			this.connections = data.bones || []
 			this.setState({ skeletonData: data.skeleton || [] })
 			this.context.setLoading(false)
@@ -257,7 +262,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 	private generateClicked(): void {
 		let currSkel = this.state.skeletonData || []
 
-		// Remove 3D coords and un-centralize 2D coords when using CapeX
+		// Un-centralize 2D coords when using CapeX
 		if (API.skeletonModel === "capex") {
 			const img = document.querySelector("#preview") as HTMLImageElement
 			const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
@@ -286,7 +291,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		const lookZ = (this.minmax[2][1] - this.minmax[2][0]) / 2 + this.minmax[2][0]
 
 		// Set camera properties and update controls
-		this.camera!.position.set(lookX, lookY, lookZ + maxDist)
+		this.camera!.position.set(lookX, -lookY, lookZ - maxDist)
 		this.camera!.rotation.set(this.cameraRotation?.x ?? 0, this.cameraRotation?.y ?? 0, this.cameraRotation?.z ?? 0)
 		this.camera!.lookAt(lookX, lookY, lookZ)
 		this.controls!.update()
