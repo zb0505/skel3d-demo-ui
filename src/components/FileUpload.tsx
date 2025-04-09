@@ -149,7 +149,8 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 					<div className="input-container">
 						<input className="form-control mb-3" type="file" id="inputImg"
 							accept="image/jpeg, image/png" ref={input => this.fileInput = input} />
-						<KeypointMarker currentImage={this.state.inputUrl} onPreviewUpdated={preview => this.updateState({ preview })}>
+						<KeypointMarker currentImage={this.state.inputUrl} reset={this.context.reset}
+							onPreviewUpdated={preview => this.updateState({ preview })}>
 							<img id="preview" className="preview" src={this.state.preview || this.state.inputUrl || "/src/assets/transparent.png"} />
 						</KeypointMarker>
 					</div>

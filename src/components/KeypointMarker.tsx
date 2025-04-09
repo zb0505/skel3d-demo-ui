@@ -8,6 +8,7 @@ import { AppContext } from "../contexts/AppContextProvider"
 interface KeypointMarkerProps {
 	children: React.JSX.Element,
 	currentImage: string,
+	reset: boolean,
 	onPreviewUpdated: (image: string) => void
 }
 
@@ -210,6 +211,12 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	componentDidUpdate(prevProps: Readonly<KeypointMarkerProps>): void {
 		// Re-render triggered, re-select container
 		this.container = document.querySelector("div.kp-marker .container")
+
+		// Handle resetting data
+		if (this.props.reset) {
+			this.removePoints()
+			this.setState({ markerType: "pos" })
+		}
 		
 		// Ignore if anything changes besides the selected image
 		if (prevProps.currentImage === this.props.currentImage) return

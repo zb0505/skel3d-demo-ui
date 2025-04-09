@@ -91,7 +91,7 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 	/** Component render method */
 	render(): ReactNode {
 		return (
-			<div className="col">
+			<div className="col placeholder-glow">
 				<h4 className="mb-2">Model outputs</h4>
 				<div className="d-flex flex-wrap justify-content-center mb-3">
 					{ this.state.outputUrls.length < 1 || this.context.loading ?
