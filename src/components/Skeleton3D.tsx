@@ -178,7 +178,8 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		return [
 			[...matrix.elements.slice(0, 4)],
 			[...matrix.elements.slice(4, 8)],
-			[...matrix.elements.slice(8, 12)]
+			[...matrix.elements.slice(8, 12)],
+			[...matrix.elements.slice(12)]
 		] as ExtrinsicMatrix
 	}
 

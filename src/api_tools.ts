@@ -54,7 +54,9 @@ export type ExtrinsicMatrix = [
 	// Up (Y-axis) + Translation
     [...Point3D, translationY: number],
 	// Forward (Z-axis) + Translation
-    [...Point3D, translationZ: number]
+    [...Point3D, translationZ: number],
+	// Homogeneous row
+	[number, number, number, number]
 ]
 
 export interface SupportPoints {

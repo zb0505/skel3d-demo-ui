@@ -77,10 +77,10 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 					this.context.srcCamera!,
 					this.context.targetCamera!
 				).then(outputs => {
+					this.context.setLoading(false)
+					this.context.updateForwardBtn({ enabled: true })
 					if (!outputs) return ToastUtils.makeToast("Failed to generate target view", "fail")
 					else this.setState({ outputUrls: outputs })
-					this.context.updateForwardBtn({ enabled: true })
-					this.context.setLoading(false)
 					if (API.isDebug) console.log("[DemoOutput] Target view generation successful:", !!outputs)
 					this.activeApiCall = null
 				})
