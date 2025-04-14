@@ -110,14 +110,14 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			this.activeApiCall = API.segmentate(this.props.currentImage, { positive: this.positive, negative: this.negative })
 			.then(resp => {
 				if (API.isDebug) console.log("[KeypointMarker] Response:", resp)
-				const output = resp.preview
-				if (API.isDebug) console.log("[KeypointMarker] Output length:", output?.length)
-				this.props.onPreviewUpdated(output || "")
-				if (!output) {
+				const { preview, bbox, segmentation } = resp
+				if (API.isDebug) console.log("[KeypointMarker] Output length:", preview?.length)
+				this.props.onPreviewUpdated(preview || "")
+				if (!preview) {
 					ToastUtils.makeToast("Failed to create segmentation", "fail")
 					this.removePoints()
 				}
-				else this.context.updateState({ bbox: resp.bbox })
+				else this.context.updateState({ bbox, segmentation })
 				if (API.isDebug) console.log("[KeypointMarker] Segmentation complete")
 				this.image?.classList.remove("placeholder")
 				this.activeApiCall = null
@@ -144,6 +144,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		if (this.container) this.container.querySelectorAll(".point").forEach(p => p.remove())
 		if (this.activeApiCall) return this.activeApiCall.then(() => this.removePoints())
 		this.props.onPreviewUpdated("")
+		this.context.updateState({ segmentation: null, bbox: null })
 		this.points = []
 		this.positive = []
 		this.negative = []

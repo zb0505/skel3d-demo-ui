@@ -1,7 +1,8 @@
+// Imports
 import * as bootstrap from "bootstrap"
 
 
-// Utility functions
+/** Collection of utility functions */
 export class Utils {
 	/** Tooltip list for updating them */
 	private static tooltipList = [] as bootstrap.Tooltip[]
@@ -44,7 +45,7 @@ export class Utils {
 }
 
 
-// Model inputs
+// #region Common types
 export type Point2D = [x: number, y: number]
 export type Point3D = [x: number, y: number, z: number]
 export type BoundingBox = [left: number, top: number, width: number, height: number]
@@ -58,67 +59,111 @@ export type ExtrinsicMatrix = [
 	// Homogeneous row
 	[number, number, number, number]
 ]
+// #endregion
 
+
+// #region Model inputs
+/** Support points for SAM2 */
 export interface SupportPoints {
+	/** Positive support points */
 	positive: Point2D[]
+	/** Negative support points */
 	negative: Point2D[]
 }
+
+/** SAM2 model input */
 export interface SAM2Input {
+	/** Image to segmentate */
 	image: string,
+	/** Support points for SAM2 */
 	points: SupportPoints
 }
 
+/** MeTRAbs model input */
 export interface MeTRAbsInput {
+	/** Image to generate the skeleton for */
 	image: string,
+	/** Bounding box of the object on the image (for more precise output) */
 	bbox?: BoundingBox | null
 }
 
+/** CapeX model input */
 export interface CapeXInput {
+	/** Image to generate the skeleton for */
 	image: string,
+	/** List of textual description of keypoints */
 	keypoints: string[],
+	/** Bones between the keypoints */
 	skeleton: Point2D[]
 }
 
+/** Skel3D model input */
 export interface Skel3DInput {
+	/** Segmentated image of the object to generate the rotated view for */
 	image: string,
+	/** 3D joints of the skeleton */
 	joints: Point3D[],
+	/** Bones of the skeleton (between joints) */
 	bones: Point2D[],
+	/** Camera extrinsic matrix of the input image (origin) */
 	src_camera: ExtrinsicMatrix,
+	/** Camera extrinsic matrix of the target view (rotation target) */
 	target_camera: ExtrinsicMatrix
 }
+// #endregion
 
 
-// Model responses
+// #region Model responses
+/** SAM2 model output */
 export interface SAM2Response {
+	/** The segmentation image with transparent background */
 	segmentation: string | null,
+	/** The preview image with grayscale and transparency effects applied to the background */
 	preview: string | null,
+	/** The bounding box of the object on the image */
 	bbox: BoundingBox | null
 }
 
+/** MeTRAbs model output */
 export interface MeTRAbsResponse {
+	/** The bones between the skeleton joints */
 	bones: Point2D[] | null,
+	/** The generated skeleton joints optimized for UI display */
 	skeleton: Point3D[] | null,
+	/** The original skeleton joints without transformations */
 	original: Point3D[] | null,
+	/** Minimum and maximum values for each dimension of the output */
 	minmax: [min: number, max: number][] | null
 }
 
+/** CapeX model output */
 export interface CapeXResponse {
+	/** The original skeleton joints without transformations */
 	original: Point2D[] | null,
+	/** The generated skeleton joints optimized for UI display */
 	skeleton: Point3D[] | null,
+	/** Minimum and maximum values for each dimension of the output */
 	minmax: [min: number, max: number][] | null
 }
 
+/** Skel3D model output */
 export interface Skel3DResponse {
+	/** The generated views */
 	predictions: string[] | null
 }
+// #endregion
 
-// API endpoint definitions
+
+// #region API endpoint definitions and response types
+/** API input types for each endpoint */
 interface APIInputs {
 	"/segmentate": SAM2Input,
 	"/skeleton": MeTRAbsInput,
 	"/skeleton_capex": CapeXInput,
 	"/skel3d": Skel3DInput
 }
+
+/** API output types for each endpoint */
 interface APIOutputs {
 	"/segmentate": SAM2Response,
 	"/skeleton": MeTRAbsResponse,
@@ -126,14 +171,17 @@ interface APIOutputs {
 	"/skel3d": Skel3DResponse
 }
 
-// API response types
+/** API response type */
 interface APIResponse<P extends keyof APIOutputs> {
+	/** HTTP status code */
 	status: number,
+	/** Parsed JSON response */
 	json: APIOutputs[P]
 }
+// #endregion
 
 
-// API class
+/** Collection of API query functions and environment variables */
 export default class API {
 	/** Whether debug mode is enabled */
 	static isDebug: boolean = import.meta.env.VITE_DEBUG === "true"
@@ -141,23 +189,28 @@ export default class API {
 	static apiURL: string = import.meta.env.VITE_API_URL || "http://localhost:8000"
 	/** The used skeleton model */
 	static skeletonModel: string = import.meta.env.VITE_SKEL_AI || "metrabs"
+	/** The API key to use */
 	private static apiKey = import.meta.env.VITE_API_KEY || "none"
 
 	/** Fetches the requested resource */
-	private static fetch<P extends keyof APIInputs>(path: P, body: APIInputs[P]): Promise<APIResponse<P> | undefined | null> {
+	private static async fetch<P extends keyof APIInputs>(path: P, body: APIInputs[P]): Promise<APIResponse<P> | undefined | null> {
 		(path as string) = path.startsWith("/") ? path : `/${path}`
 		const apiUrl = this.apiURL.replace(/\/$/, "")
 		const timeoutController = new AbortController()
-		setTimeout(() => timeoutController.abort(), 2 * 60 * 1000) // 2 minutes timeout
-		return fetch(apiUrl + path, {
-			headers: {
-				"Content-Type": "application/json",
-				"Authorization": `${this.apiKey}`
-			},
-			method: "POST", body: JSON.stringify(body),
-			signal: timeoutController.signal
-		}).then(async r => r.ok ? { status: r.status, json: await r.json() } : null)
-		.catch(err => console.error("API fetch failed:", err) as undefined)
+		setTimeout(() => timeoutController.abort(), 60 * 1000) // 1 minute timeout
+		try {
+			const r = await fetch(apiUrl + path, {
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `${this.apiKey}`
+				},
+				method: "POST", body: JSON.stringify(body),
+				signal: timeoutController.signal
+			})
+			return r.ok ? { status: r.status, json: await r.json() } : null
+		} catch (err) {
+			return console.error("API fetch failed:", err) as undefined
+		}
 	}
 
 	/**

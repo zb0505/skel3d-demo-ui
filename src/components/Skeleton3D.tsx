@@ -49,7 +49,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 	private cameraRotation: Three.Euler | null = null
 	
 	/** Skeleton joints' coordinates without modification for preview */
-	//private skeleton: MeTRAbsResponse["original"] | null = null
+	private skeleton: MeTRAbsResponse["original"] | null = null
 	
 	/** Skeleton bones */
 	private connections: CapeXInput["skeleton"] = []
@@ -193,7 +193,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 			this.connections = this.buildConnections(this.keypoints)
 			this.activeApiCall = API.skeleton_capex(await Utils.fileToDataUrl(this.context.inFile), kps, this.connections).then(data => {
 				this.minmax = data.minmax || []
-				//this.skeleton = data.original?.map(xy => [...xy, 0]) || []
+				this.skeleton = data.original?.map(xy => [...xy, 0]) || []
 				this.setState({ skeletonData: data.skeleton || [] })
 				this.context.setLoading(false)
 				this.activeApiCall = null
@@ -201,7 +201,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		}
 		else this.activeApiCall = API.skeleton(await Utils.fileToDataUrl(this.context.inFile), this.context.bbox).then(data => {
 			this.minmax = data.minmax || []
-			//this.skeleton = data.original || []
+			this.skeleton = data.original || []
 			this.connections = data.bones || []
 			this.setState({ skeletonData: data.skeleton || [] })
 			this.context.setLoading(false)
@@ -261,19 +261,19 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 
 	/** Generate button click callback */
 	private generateClicked(): void {
-		let currSkel = this.state.skeletonData || []
+		//let currSkel = this.state.skeletonData || []
 
 		// Un-centralize 2D coords when using CapeX
-		if (API.skeletonModel === "capex") {
+		/* if (API.skeletonModel === "capex") {
 			const img = document.querySelector("#preview") as HTMLImageElement
 			const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
 			currSkel = this.state.skeletonData?.map(([x, y]) => [x + Math.floor(imgWidth / 2), y + Math.floor(imgHeight / 2), 0]) || []
-		}
+		} */
 
 		// Extract camera properties and execute callback
 		const targetCamera = this.getExtrinsicMatrix(this.camera!)
 		this.context.updateState({
-			skeleton: currSkel,
+			skeleton: this.skeleton,
 			bones: this.connections,
 			srcCamera: this.srcCamera,
 			targetCamera

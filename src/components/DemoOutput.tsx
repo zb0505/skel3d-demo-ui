@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react"
-import API, { Utils } from "../api_tools"
+import API from "../api_tools"
 import ToastUtils from "../toast_tools"
 import { AppContext } from "../contexts/AppContextProvider"
 import * as bootstrap from "bootstrap"
@@ -36,8 +36,29 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 		return !!(this.context.inFile && this.context.skeleton && this.context.bones && this.context.srcCamera && this.context.targetCamera)
 	}
 
+	/** Starts view generation API call */
+	private generateViews(): void {
+		if (this.activeApiCall) return
+		if (API.isDebug) console.log("[DemoOutput] Generating target view...")
+		this.context.setLoading(true)
+		this.activeApiCall = API.skel3D(
+			this.context.segmentation!,
+			this.context.skeleton!,
+			this.context.bones!,
+			this.context.srcCamera!,
+			this.context.targetCamera!
+		).then(outputs => {
+			this.context.setLoading(false)
+			this.context.updateForwardBtn({ enabled: true })
+			if (!outputs) return ToastUtils.makeToast("Failed to generate target view", "fail")
+			else this.setState({ outputUrls: outputs })
+			if (API.isDebug) console.log("[DemoOutput] Target view generation successful:", !!outputs)
+			this.activeApiCall = null
+		})
+	}
+
 	/** Context and state update callback */
-	async componentDidUpdate(): Promise<void> {
+	componentDidUpdate(): void {
 		// Ignore state changes except for input image and skeleton changes
 		if (
 			this.context.prevState.inFile === this.context.inFile &&
@@ -66,25 +87,7 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 				}
 			})
 			// If all props are ready, make API call
-			if (this.propsReady() && !this.activeApiCall) {
-				if (API.isDebug) console.log("[DemoOutput] Generating target view...")
-				const input = await Utils.fileToDataUrl(this.context.inFile!)
-				this.context.setLoading(true)
-				this.activeApiCall ??= API.skel3D(
-					input,
-					this.context.skeleton!,
-					this.context.bones!,
-					this.context.srcCamera!,
-					this.context.targetCamera!
-				).then(outputs => {
-					this.context.setLoading(false)
-					this.context.updateForwardBtn({ enabled: true })
-					if (!outputs) return ToastUtils.makeToast("Failed to generate target view", "fail")
-					else this.setState({ outputUrls: outputs })
-					if (API.isDebug) console.log("[DemoOutput] Target view generation successful:", !!outputs)
-					this.activeApiCall = null
-				})
-			}
+			if (this.propsReady() && !this.activeApiCall) this.generateViews()
 		}
 	}
 	
@@ -97,10 +100,14 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 					{ this.state.outputUrls.length < 1 || this.context.loading ?
 						<img src="/src/assets/transparent.png" className="placeholder bordered rounded output" /> :
 						this.state.outputUrls.map((url, i) => (
-							<img key={i} src={url} className={(i % 2 ? "ms-sm-2 " : "") + " mb-2 bordered rounded output"} />
+							<img key={i} src={url} className={(i % 2 ? "ms-sm-2 " : "") + "mb-2 bordered rounded output"} />
 						))
 					}
 				</div>
+				<button className="btn btn-primary fab" style={{ right: "8rem" }} onClick={() => this.generateViews()}
+					disabled={this.context.loading}>
+					Re-generate
+				</button>
 			</div>
 		)
 	}

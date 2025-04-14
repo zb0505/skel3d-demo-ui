@@ -6,6 +6,8 @@ import { BoundingBox, ExtrinsicMatrix, Point2D, Point3D } from "../api_tools"
 export interface AppState {
 	/** Input file */
 	inFile: Blob | null,
+	/** Segmentated input file (for Skel3D) */
+	segmentation: string | null,
 	/** Skeleton joints' coordinates */
 	skeleton: Point3D[] | null,
 	/** Skeleton bones */
@@ -81,6 +83,7 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 	static defaultState: AppState = {
 		step: 0,
 		inFile: null,
+		segmentation: null,
 		skeleton: null,
 		bones: null,
 		srcCamera: null,
@@ -129,7 +132,6 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 		this.updatedState = { ...AppContextProvider.defaultState, reset: true }
 		this.setState({ ...AppContextProvider.defaultState, reset: true })
 		this.stateChanges = null
-		console.log("[AppContextProvider] State reset, updatedState:", this.updatedState)
 	}
 
 	/** Context state update callback */
