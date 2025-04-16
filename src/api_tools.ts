@@ -197,7 +197,7 @@ export default class API {
 		(path as string) = path.startsWith("/") ? path : `/${path}`
 		const apiUrl = this.apiURL.replace(/\/$/, "")
 		const timeoutController = new AbortController()
-		setTimeout(() => timeoutController.abort(), 60 * 1000) // 1 minute timeout
+		setTimeout(() => timeoutController.abort(), 30_000) // 30 seconds timeout
 		try {
 			const r = await fetch(apiUrl + path, {
 				headers: {
@@ -263,7 +263,7 @@ export default class API {
 		srcCamera: ExtrinsicMatrix, targetCamera: ExtrinsicMatrix
 	): Promise<Skel3DResponse["predictions"]> {
 		const resp = await this.fetch("/skel3d", { image, joints, bones, src_camera: srcCamera, target_camera: targetCamera })
-		if (resp?.status !== 200) return []
+		if (resp?.status !== 200) return null
 		return resp.json.predictions
 	}
 }

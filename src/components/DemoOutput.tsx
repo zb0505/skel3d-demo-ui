@@ -50,7 +50,7 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 		).then(outputs => {
 			this.context.setLoading(false)
 			this.context.updateForwardBtn({ enabled: true })
-			if (!outputs) return ToastUtils.makeToast("Failed to generate target view", "fail")
+			if (!outputs) ToastUtils.makeToast("Failed to generate target view", "fail")
 			else this.setState({ outputUrls: outputs })
 			if (API.isDebug) console.log("[DemoOutput] Target view generation successful:", !!outputs)
 			this.activeApiCall = null
@@ -97,7 +97,7 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 			<div className="col placeholder-glow">
 				<h4 className="mb-2">Model outputs</h4>
 				<div className="d-flex flex-wrap justify-content-center mb-3">
-					{ this.state.outputUrls.length < 1 || this.context.loading ?
+					{ this.context.loading ?
 						<img src="/src/assets/transparent.png" className="placeholder bordered rounded output" /> :
 						this.state.outputUrls.map((url, i) => (
 							<img key={i} src={url} className={(i % 2 ? "ms-sm-2 " : "") + "mb-2 bordered rounded output"} />

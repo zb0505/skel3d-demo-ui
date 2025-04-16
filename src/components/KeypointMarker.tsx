@@ -131,12 +131,14 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		if (this.activeApiCall) return this.activeApiCall.then(() => this.undoLastPoint())
 		if (this.markerTimeout) clearTimeout(this.markerTimeout)
 		if (API.isDebug) console.log("[KeypointMarker] Undo last point")
-		const lastPoint = this.points.pop()
-		if (!lastPoint) return
+		const lastPoint = this.points.pop()!
 		this.positive = this.positive.filter(p => p[0] !== lastPoint[0] && p[1] !== lastPoint[1])
 		this.negative = this.negative.filter(p => p[0] !== lastPoint[0] && p[1] !== lastPoint[1])
 		lastPoint[2].remove()
-		this.onPointAdded()
+		// If there are no points left, reset state
+		if (this.points.length < 1) this.removePoints()
+		// Otherwise run segmentation
+		else this.onPointAdded()
 	}
 
 	/** Removes all points */
