@@ -146,6 +146,13 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 			<div className="d-flex flex-column flex-lg-row justify-content-between">
 				<div className="flex-fill mw-50">
 					<h4 className="form-label m-0 mb-2">Input image</h4>
+					<div className={(API.skeletonModel === "capex" ? "d-none" : "d-flex") + " flex-row align-items-center justify-content-start border border-primary rounded py-1 px-2 mb-3"}>
+						<i className="fa-solid fa-info-circle text-primary me-2 fs-5"></i>
+						<span className="text-primary text-start">
+							Skeletal information can only be extracted from humanoid objects currently.
+							Please use an image of a human-like object.
+						</span>
+					</div>
 					<div className="input-container">
 						<input className="form-control mb-3" type="file" id="inputImg"
 							accept="image/jpeg, image/png" ref={input => this.fileInput = input} />
