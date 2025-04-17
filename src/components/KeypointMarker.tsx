@@ -143,8 +143,8 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 
 	/** Removes all points */
 	private async removePoints(): Promise<void> {
-		if (this.container) this.container.querySelectorAll(".point").forEach(p => p.remove())
 		if (this.activeApiCall) return this.activeApiCall.then(() => this.removePoints())
+		if (this.container) this.container.querySelectorAll(".point").forEach(p => p.remove())
 		this.props.onPreviewUpdated("")
 		this.context.updateState({ segmentation: null, bbox: null })
 		this.points = []
