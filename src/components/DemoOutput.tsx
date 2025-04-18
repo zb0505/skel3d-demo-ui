@@ -59,23 +59,33 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 
 	/** Context and state update callback */
 	componentDidUpdate(): void {
+		// Update extra button state
+		if (this.context.prevState.step !== this.context.step) this.context.updateExtraBtn({ visible: this.context.step === 2 })
+		
 		// Ignore state changes except for input image and skeleton changes
-		if (
-			this.context.prevState.inFile === this.context.inFile &&
+		const sameInputs = this.context.prevState.segmentation === this.context.segmentation &&
 			this.context.prevState.skeleton === this.context.skeleton &&
 			this.context.prevState.bones === this.context.bones &&
 			this.context.prevState.srcCamera === this.context.srcCamera &&
 			this.context.prevState.targetCamera === this.context.targetCamera &&
-			this.context.prevState.step === this.context.step
+			this.context.prevState.rotation === this.context.rotation
+		if (
+			sameInputs &&
+			this.context.prevState.step === this.context.step &&
+			this.context.prevState.reset === this.context.reset
 		) return
+
+		// Handle resetting state
+		if (this.context.reset) return this.setState({ outputUrls: [] })
 
 		// Update forward button when step changes
 		if (this.context.prevState.step !== this.context.step && this.context.step === 2) {
 			this.context.updateForwardBtn({ enabled: false })
+			this.context.updateExtraBtn({ click: () => this.generateViews() })
 		}
 
-		// If this is the current view, update the output image
-		if (this.context.step === 2) {
+		// If this is the current view and anything changed in the previous steps, run the API call
+		if (this.context.step === 2 && !sameInputs) {
 			// Update forward button
 			this.context.updateForwardBtn({
 				text: "Start again",
@@ -104,10 +114,6 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 						))
 					}
 				</div>
-				<button className="btn btn-primary fab" style={{ right: "8rem" }} onClick={() => this.generateViews()}
-					disabled={this.context.loading}>
-					Re-generate
-				</button>
 			</div>
 		)
 	}

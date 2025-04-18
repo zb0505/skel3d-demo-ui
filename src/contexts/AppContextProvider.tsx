@@ -16,6 +16,8 @@ export interface AppState {
 	srcCamera: ExtrinsicMatrix | null,
 	/** Target camera view */
 	targetCamera: ExtrinsicMatrix | null,
+	/** Euler rotation angles (XYZ in radians) */
+	rotation: Point3D | null,
 	/** Bounding box (for MeTRAbs) */
 	bbox: BoundingBox | null,
 	/** Loading state */
@@ -32,6 +34,17 @@ export interface AppState {
 		text: string,
 		/** Button enabled state */
 		enabled: boolean,
+		/** Button click action */
+		click: () => void
+	}
+	/** Extra button state */
+	extraBtn: {
+		/** Button text */
+		text: string,
+		/** Button enabled state */
+		enabled: boolean,
+		/** Button visible state */
+		visible: boolean,
 		/** Button click action */
 		click: () => void
 	}
@@ -59,6 +72,8 @@ export type AppContextServices = AppState & {
 	updateState: (newState: Partial<AppState>) => void,
 	/** Updates forward button state */
 	updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => void,
+	/** Updates extra button state */
+	updateExtraBtn: (newState: Partial<AppState["extraBtn"]>) => void,
 	/** Resets context state */
 	resetState: () => void
 }
@@ -88,6 +103,7 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 		bones: null,
 		srcCamera: null,
 		targetCamera: null,
+		rotation: null,
 		bbox: null,
 		loading: false,
 		reset: false,
@@ -95,6 +111,12 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 		forwardBtn: {
 			text: "Next",
 			enabled: true,
+			click: () => {}
+		},
+		extraBtn: {
+			text: "Re-generate",
+			enabled: true,
+			visible: false,
 			click: () => {}
 		}
 	}
@@ -122,6 +144,18 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 			...prevState,
 			forwardBtn: {
 				...prevState.forwardBtn,
+				...newState
+			}
+		}))
+	}
+
+	/** Updates the extra button state */
+	private updateExtraBtn(newState: Partial<AppState["extraBtn"]>): void {
+		this.updatedState = { ...this.updatedState, extraBtn: { ...this.updatedState.extraBtn, ...newState } }
+		this.setState(prevState => ({
+			...prevState,
+			extraBtn: {
+				...prevState.extraBtn,
 				...newState
 			}
 		}))
@@ -161,6 +195,7 @@ export default class AppContextProvider extends React.Component<React.PropsWithC
 			setLoading: (loading: boolean) => this.updateState({ loading }),
 			updateState: (newState: Partial<AppState>) => this.updateState(newState),
 			updateForwardBtn: (newState: Partial<AppState["forwardBtn"]>) => this.updateForwardBtn(newState),
+			updateExtraBtn: (newState: Partial<AppState["extraBtn"]>) => this.updateExtraBtn(newState),
 			resetState: () => this.resetState()
 		}
 

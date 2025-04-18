@@ -68,8 +68,15 @@ export default class App extends Component<unknown, unknown, AppState> {
 					onClick={() => this.context.updateState({ step: this.context.step - 1 })}>
 					Previous
 				</button>
+				<button className="btn btn-primary fab" type="button" style={{ right: "8rem" }}
+					disabled={!this.context.extraBtn.enabled || this.context.loading}
+					hidden={!this.context.extraBtn.visible}
+					onClick={() => this.context.extraBtn.click()}>
+					{this.context.extraBtn.text}
+				</button>
 				<button className="btn btn-primary fab fab-right" type="button" data-bs-target="#main" data-bs-slide="next"
-					onClick={this.onForwardBtnClicked.bind(this)} disabled={!this.context.forwardBtn.enabled || this.context.loading}>
+					disabled={!this.context.forwardBtn.enabled || this.context.loading}
+					onClick={this.onForwardBtnClicked.bind(this)}>
 					{this.context.forwardBtn.text}
 				</button>
 			</div>

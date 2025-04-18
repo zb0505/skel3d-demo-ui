@@ -1,7 +1,7 @@
 import { Component, ReactNode } from "react"
 import * as Three from "three"
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
-import API, { MeTRAbsResponse, Utils, CapeXInput, ExtrinsicMatrix } from "../api_tools"
+import API, { MeTRAbsResponse, Utils, CapeXInput, ExtrinsicMatrix, Point3D } from "../api_tools"
 import ToastUtils from "../toast_tools"
 import { AppContext } from "../contexts/AppContextProvider"
 
@@ -127,9 +127,12 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 	/** Context and state update callback */
 	async componentDidUpdate(_prevProps: Readonly<unknown>, prevState: Readonly<Skeleton3DState>): Promise<void> {
 		// Ignore state changes except for skeleton data
+		const sameInputs = this.context.keypoints === this.keypoints &&
+			this.context.prevState.segmentation === this.context.segmentation &&
+			this.context.inFile === this.prevFile
 		if (
+			sameInputs &&
 			prevState.skeletonData === this.state.skeletonData &&
-			this.context.prevState.inFile === this.context.inFile &&
 			this.context.prevState.reset === this.context.reset &&
 			this.context.prevState.step === this.context.step
 		) return
@@ -152,8 +155,8 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 				`\n  Keypoints check:`, (this.context.keypoints ?? "") !== this.keypoints,
 			)
 			if (
-				this.context.inFile !== null && this.context.prevState.step !== this.context.step && !this.activeApiCall &&
-				((this.context.keypoints ?? "") !== this.keypoints || this.prevFile !== this.context.inFile)
+				this.context.inFile !== null && this.context.segmentation !== null && !sameInputs &&
+				this.context.prevState.step !== this.context.step && !this.activeApiCall
 			) {
 				if (API.isDebug) console.log("[Skeleton3D] File ready, loading skeleton data...")
 				this.keypoints = this.context.keypoints ?? ""
@@ -183,15 +186,32 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		] as ExtrinsicMatrix
 	}
 
+	/**
+	 * Calculates the relative rotation of 2 extrinsic matrices.
+	 * @returns Euler angles as XYZ tuple in radians
+	 */
+	private getRelativeRotation(sourceExtrinsic: Three.Matrix4, targetExtrinsic: Three.Matrix4): Point3D {
+		// Extract rotation matrices
+		const source = new Three.Matrix4().extractRotation(sourceExtrinsic)
+		const target = new Three.Matrix4().extractRotation(targetExtrinsic)
+
+		// Calculate and return relative rotation
+		const sourceInv = source.clone().invert()
+		const relativeRot = new Three.Matrix4().multiplyMatrices(sourceInv, target)
+		const euler = new Three.Euler().setFromRotationMatrix(relativeRot)
+		return [euler.x, euler.y, euler.z]
+	}
+
 	/** Runs skeleton generation API call */
 	private async generateSkeleton(): Promise<void> {
-		if (!this.context.inFile || (API.skeletonModel === "capex" && !this.keypoints)) return
+		if (!this.context.inFile || (API.skeletonModel === "capex" && !this.context.segmentation && !this.keypoints)) return
 		this.context.setLoading(true)
 		this.setState({ skeletonData: null })
 		if (API.skeletonModel === "capex") {
 			const kps = this.getKeypoints(this.keypoints)
+			const img = this.context.segmentation ?? await Utils.fileToDataUrl(this.context.inFile)
 			this.connections = this.buildConnections(this.keypoints)
-			this.activeApiCall = API.skeleton_capex(await Utils.fileToDataUrl(this.context.inFile), kps, this.connections).then(data => {
+			this.activeApiCall = API.skeleton_capex(img, kps, this.connections).then(data => {
 				this.minmax = data.minmax || []
 				this.skeleton = data.original?.map(xy => [...xy, 0]) || []
 				this.setState({ skeletonData: data.skeleton || [] })
@@ -272,10 +292,13 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 
 		// Extract camera properties and execute callback
 		const targetCamera = this.getExtrinsicMatrix(this.camera!)
+		const sourceMtx = new Three.Matrix4().fromArray(this.srcCamera!.flat() as Three.Matrix4Tuple)
+		const targetMtx = new Three.Matrix4().fromArray(targetCamera.flat() as Three.Matrix4Tuple)
 		this.context.updateState({
 			skeleton: this.skeleton,
 			bones: this.connections,
 			srcCamera: this.srcCamera,
+			rotation: this.getRelativeRotation(sourceMtx, targetMtx),
 			targetCamera
 		})
 	}
