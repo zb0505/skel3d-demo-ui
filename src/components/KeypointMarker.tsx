@@ -49,6 +49,9 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	
 	/** Points on the image (including their HTML elements) */
 	private points: [...Point2D, HTMLSpanElement][] = []
+
+	/** Points on the image that have already been segmentated (including their HTML elements) */
+	private processedPoints: [...Point2D, HTMLSpanElement][] = []
 	
 	/** Positive points */
 	private positive: Point2D[] = []
@@ -112,12 +115,15 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 				if (API.isDebug) console.log("[KeypointMarker] Response:", resp)
 				const { preview, bbox, segmentation } = resp
 				if (API.isDebug) console.log("[KeypointMarker] Output length:", preview?.length)
-				this.props.onPreviewUpdated(preview || "")
 				if (!preview) {
 					ToastUtils.makeToast("Failed to create segmentation", "fail")
-					this.removePoints()
+					this.checkUnsegmentedPoints()
 				}
-				else this.context.updateState({ bbox, segmentation })
+				else {
+					this.props.onPreviewUpdated(preview || "")
+					this.context.updateState({ bbox, segmentation })
+					this.processedPoints = [...this.points]
+				}
 				if (API.isDebug) console.log("[KeypointMarker] Segmentation complete")
 				this.image?.classList.remove("placeholder")
 				this.activeApiCall = null
@@ -125,7 +131,22 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		}, 2000)
 	}
 
-	/** Removes the latest point and runs segmentation as if a point was added */
+	/** Checks points that couldn't be segmentated or removed */
+	private checkUnsegmentedPoints(): void {
+		if (this.points.length < 1) return
+		const unsegmented = this.points.filter(p => !this.processedPoints.some(q => p[0] === q[0] && p[1] === q[1]))
+		unsegmented.forEach(point => {
+			this.points.splice(this.points.indexOf(point), 1)
+			this.positive = this.positive.filter(p => p[0] !== point[0] && p[1] !== point[1])
+			this.negative = this.negative.filter(p => p[0] !== point[0] && p[1] !== point[1])
+			point[2].remove()
+		})
+		const missing = this.processedPoints.filter(p => !this.points.some(q => p[0] === q[0] && p[1] === q[1]))
+		missing.forEach(point => this.container?.appendChild(point[2]))
+		this.points = [...this.processedPoints]
+	}
+
+	/** Removes the latest point and runs segmentation again (unless defined otherwise) */
 	private async undoLastPoint(): Promise<void> {
 		if (this.points.length < 1) return
 		if (this.activeApiCall) return this.activeApiCall.then(() => this.undoLastPoint())
