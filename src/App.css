@@ -79,6 +79,16 @@
 	background-color: #dd0000;
 }
 
+/* Bootstrap extension: ghost buttons */
+.btn-ghost {
+	background-color: transparent;
+	border-color: transparent;
+}
+.btn-ghost:disabled {
+	background-color: transparent;
+	border-color: transparent;
+}
+
 /* Floating action button styles */
 .fab {
 	position: fixed;

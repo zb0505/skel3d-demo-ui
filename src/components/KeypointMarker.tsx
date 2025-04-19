@@ -260,20 +260,24 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			<div className="mt-2">
 				<button className={"btn btn-outline-success me-2" + (this.state.markerType === "pos" ? " active" : "")}
 					data-bs-toggle="tooltip" data-bs-title="Positive point marker"
+					disabled={!this.props.currentImage}
 					onClick={() => this.setState({ markerType: "pos" })}>
 					<i className="fa-solid fa-plus"></i>
 				</button>
 				<button className={"btn btn-outline-danger me-2" + (this.state.markerType === "neg" ? " active" : "")}
 					data-bs-toggle="tooltip" data-bs-title="Negative point marker"
+					disabled={!this.props.currentImage}
 					onClick={() => this.setState({ markerType: "neg" })}>
 					<i className="fa-solid fa-minus"></i>
 				</button>
 				<button className="btn btn-ghost text-secondary" onClick={() => this.undoLastPoint()}
-					data-bs-toggle="tooltip" data-bs-title="Undo last point">
+					data-bs-toggle="tooltip" data-bs-title="Undo last point"
+					disabled={!this.props.currentImage}>
 					<i className="fa-solid fa-undo"></i>
 				</button>
 				<button className="btn btn-ghost text-danger" onClick={() => this.removePoints()}
-					data-bs-toggle="tooltip" data-bs-title="Delete points">
+					data-bs-toggle="tooltip" data-bs-title="Delete points"
+					disabled={!this.props.currentImage}>
 					<i className="fa-solid fa-trash"></i>
 				</button>
 			</div>
