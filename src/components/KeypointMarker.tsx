@@ -44,9 +44,6 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 	/** Marker container */
 	private container: HTMLDivElement | null = null
 	
-	/** Image element */
-	private image: HTMLImageElement | null = null
-	
 	/** Points on the image (including their HTML elements) */
 	private points: [...Point2D, HTMLSpanElement][] = []
 
@@ -109,7 +106,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		if (API.isDebug) console.log("[KeypointMarker] Point added, waiting for timeout")
 		this.markerTimeout = setTimeout(() => {
 			if (API.isDebug) console.log("[KeypointMarker] Timeout reached, running segmentation")
-			this.image?.classList.add("placeholder")
+			this.context.updateState({ loading: true })
 			this.activeApiCall = API.segmentate(this.props.currentImage, { positive: this.positive, negative: this.negative })
 			.then(resp => {
 				if (API.isDebug) console.log("[KeypointMarker] Response:", resp)
@@ -125,7 +122,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 					this.processedPoints = [...this.points]
 				}
 				if (API.isDebug) console.log("[KeypointMarker] Segmentation complete")
-				this.image?.classList.remove("placeholder")
+				this.context.updateState({ loading: false })
 				this.activeApiCall = null
 			})
 		}, 2000)
@@ -181,7 +178,7 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 		// Containers and image
 		const marker = document.querySelector("div.kp-marker") as HTMLDivElement
 		const container = this.container = marker.querySelector(".container") as HTMLDivElement
-		const image = this.image = document.querySelector("#preview") as HTMLImageElement
+		const image = document.querySelector("#preview") as HTMLImageElement
 
 		// Add listener to marker container
 		marker.addEventListener("click", event => {
@@ -260,24 +257,24 @@ export default class KeypointMarker extends Component<KeypointMarkerProps, Keypo
 			<div className="mt-2">
 				<button className={"btn btn-outline-success me-2" + (this.state.markerType === "pos" ? " active" : "")}
 					data-bs-toggle="tooltip" data-bs-title="Positive point marker"
-					disabled={!this.props.currentImage}
+					disabled={!this.props.currentImage || this.context.loading}
 					onClick={() => this.setState({ markerType: "pos" })}>
 					<i className="fa-solid fa-plus"></i>
 				</button>
 				<button className={"btn btn-outline-danger me-2" + (this.state.markerType === "neg" ? " active" : "")}
 					data-bs-toggle="tooltip" data-bs-title="Negative point marker"
-					disabled={!this.props.currentImage}
+					disabled={!this.props.currentImage || this.context.loading}
 					onClick={() => this.setState({ markerType: "neg" })}>
 					<i className="fa-solid fa-minus"></i>
 				</button>
 				<button className="btn btn-ghost text-secondary" onClick={() => this.undoLastPoint()}
 					data-bs-toggle="tooltip" data-bs-title="Undo last point"
-					disabled={!this.props.currentImage}>
+					disabled={!this.props.currentImage || this.context.loading}>
 					<i className="fa-solid fa-undo"></i>
 				</button>
 				<button className="btn btn-ghost text-danger" onClick={() => this.removePoints()}
 					data-bs-toggle="tooltip" data-bs-title="Delete points"
-					disabled={!this.props.currentImage}>
+					disabled={!this.props.currentImage || this.context.loading}>
 					<i className="fa-solid fa-trash"></i>
 				</button>
 			</div>
