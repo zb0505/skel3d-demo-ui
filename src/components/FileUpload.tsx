@@ -73,9 +73,9 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 			if (!input.files?.length) return this.updateState({ inputUrl: "" })
 
 			// If the file type is incorrect, show a toast and reset the input
-			const fileType = input.files[0].type
+			const fileType = input.files[0].type || "unknown mime type"
 			if (this.fileInput && !this.fileInput.accept.split(",").some(type => fileType === type.trim())) {
-				ToastUtils.makeToast("Invalid file type", "fail")
+				ToastUtils.makeToast(`Invalid file type: ${fileType}`, "fail")
 				this.fileInput.value = ""
 				return this.updateState({ inputUrl: "" })
 			}
