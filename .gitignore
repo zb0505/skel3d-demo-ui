@@ -7,13 +7,19 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Module and build directories
+# Module and build directories and files
 __pycache__
 node_modules
 dist
 dist-ssr
 *.local
 *.tsbuildinfo
+*.sif
+
+# Model checkpoint files
+*.pt
+*.pth
+*.ckpt
 
 # Ignore .env files
 .env
