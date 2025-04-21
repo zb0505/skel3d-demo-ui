@@ -281,16 +281,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 
 	/** Generate button click callback */
 	private generateClicked(): void {
-		//let currSkel = this.state.skeletonData || []
-
-		// Un-centralize 2D coords when using CapeX
-		/* if (API.skeletonModel === "capex") {
-			const img = document.querySelector("#preview") as HTMLImageElement
-			const imgWidth = img.naturalWidth, imgHeight = img.naturalHeight
-			currSkel = this.state.skeletonData?.map(([x, y]) => [x + Math.floor(imgWidth / 2), y + Math.floor(imgHeight / 2), 0]) || []
-		} */
-
-		// Extract camera properties and execute callback
+		// Extract camera properties and update context state
 		const targetCamera = this.getExtrinsicMatrix(this.camera!)
 		const sourceMtx = new Three.Matrix4().fromArray(this.srcCamera!.flat() as Three.Matrix4Tuple)
 		const targetMtx = new Three.Matrix4().fromArray(targetCamera.flat() as Three.Matrix4Tuple)
