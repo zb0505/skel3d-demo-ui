@@ -1,0 +1,190 @@
+Bootstrap: docker
+From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+
+%labels
+	MAINTAINER Aron Fothi
+
+%post
+	# Downloads the latest package lists (important).
+	apt-get update -y
+
+	# Install python and other tools
+	# Non-interactive is used to ensure prompts are omitted.
+	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+		python3-dev \
+		python3-tk \
+		python3-pip \
+		python3-venv \
+		python3-setuptools \
+		systemd \
+		imagemagick \
+		curl \
+		ffmpeg \
+		libsm6 \
+		libxext6 \
+		wget \
+		git \
+		openslide-tools
+	
+	# Install venv and other utils
+	python3 -m pip install virtualenv cgroup-utils
+
+	# Create virtual environment and activate it
+	python3 -m venv /venv_skel3d
+	chmod -R +x /venv_skel3d
+	. /venv_skel3d/bin/activate
+
+	# Clone Skel3D
+	git clone https://github.com/skel3d/skel3d.git /opt/skel3d
+
+	# Copy API files
+	cp /mnt/.env /mnt/demo_models.py /mnt/skel3d_api.py /mnt/main.py /opt/skel3d
+
+	# Copy requirements.txt files
+	cp /mnt/requirements/requirements_base.txt /mnt/requirements/requirements_skel3d.txt /opt/skel3d
+
+	# Copy test files
+	cp /mnt/tests/pytest.ini /opt/skel3d
+	cp -r /mnt/images /opt/skel3d/images
+	cp /mnt/common_utils.py /mnt/tests/test_skel3d_api.py /opt/skel3d
+
+	# Skel3D utils script may be inside the free3d folder during development, make sure to copy it
+	if [ -f "/mnt/free3d/skel3d_utils.py" ]; then
+		cp /mnt/free3d/skel3d_init.py /mnt/free3d/skel3d_utils*.py /opt/skel3d
+
+	# If not found, that means it is inside the current folder
+	else
+		cp /mnt/skel3d_init.py /mnt/skel3d_utils*.py /opt/skel3d
+	fi
+
+	# Copy checkpoint file if present in the free3d directory
+	if [ -f "/mnt/free3d/skel3d_coord.ckpt" ]; then
+		cp /mnt/free3d/skel3d_coord.ckpt /opt/skel3d
+	
+	# Otherwise download it
+	else
+		#wget -O /opt/skel3d/skel3d_coord.ckpt "URL"
+		echo "TODO: insert URL and uncomment wget line"
+		exit -1
+	fi
+
+	# Download SAM checkpoint
+	wget -O /opt/skel3d/sam_checkpoint.pth "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"
+
+	# Install dependencies
+	pip3 install -r /opt/skel3d/requirements_skel3d.txt
+
+	# Change permissions to avoid errors
+	chmod -R 777 /venv_skel3d/lib/python*/site-packages
+	chmod -R 755 /opt
+
+	# Add virtual environment bashrc file
+	echo ". /venv_skel3d/bin/activate" > /opt/venv_rc
+	chmod +x /opt/venv_rc
+
+%environment
+	export PORT=8889
+	export LC_ALL=C
+
+	# Set home directory for Python pathlib
+	export HOME=/tmp/skel3d_home
+
+	# Set all PyTorch and related cache directories to writable location
+	export NUMBA_CACHE_DIR=/tmp/numba_cache
+	export PYTORCH_KERNEL_CACHE_PATH=/tmp/skel3d_cache
+	export TORCH_HOME=/tmp/skel3d_cache
+	export XDG_CACHE_HOME=/tmp/skel3d_cache
+	export HUGGINGFACE_HUB_CACHE=/tmp/skel3d_cache/huggingface
+	export TRANSFORMERS_CACHE=/tmp/skel3d_cache/transformers
+	export HF_HOME=/tmp/skel3d_cache/hf
+
+	# Activate virtual environment
+	. /venv_skel3d/bin/activate
+
+%startscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	mkdir -p /tmp/skel3d_cache
+	mkdir -p /tmp/numba_cache
+	mkdir -p /tmp/skel3d_home
+	chmod -R 777 /tmp/skel3d_home
+
+	# Start API service
+	. /venv_skel3d/bin/activate
+	cd /opt/skel3d
+	exec python3 main.py skel3d_api 8003
+
+%runscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	mkdir -p /tmp/skel3d_cache
+	mkdir -p /tmp/numba_cache
+	mkdir -p /tmp/skel3d_home
+	chmod -R 777 /tmp/skel3d_home
+
+	# Activate virtual environment
+	. /venv_skel3d/bin/activate
+
+	# If test was required, run test script
+	if [ "$1" = "--test" ]; then
+		cd /opt/skel3d
+		exec python3 -m pytest test_skel3d_api.py
+	
+	# Otherwise start container shell
+	else
+		exec bash --rcfile /opt/venv_rc
+	fi
+
+%test
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	mkdir -p /tmp/skel3d_cache
+	mkdir -p /tmp/numba_cache
+	mkdir -p /tmp/skel3d_home
+	chmod -R 777 /tmp/skel3d_home
+	
+	# Build-in apptainer test command
+	. /venv_skel3d/bin/activate
+	cd /opt/skel3d
+	exec python3 -m pytest test_skel3d_api.py
+
+%help
+╔════════════════════════════════════════════════════════════╗
+║                      Skel3D Container                      ║
+╚════════════════════════════════════════════════════════════╝
+
+DESCRIPTION:
+  Skel3D is a powerful Novel View Synthesis model.
+  This container provides an API for generating views with the model.
+  Used by the Skel3D demo app.
+
+USAGE:
+  apptainer run [apptainer options] skel3d.sif [options]
+
+OPTIONS:
+  --test         Run the test suite
+  (no options)   Start an interactive shell
+
+SERVICE MODE:
+  apptainer instance start skel3d.sif skel3d-service
+  
+  The container will start the API service on port 8003
+  Access the API at http://localhost:8003
+
+EXAMPLES:
+  # Run the container with an interactive shell
+  apptainer run skel3d.sif
+  
+  # Run the test suite
+  apptainer run skel3d.sif --test
+  # or
+  apptainer test skel3d.sif
+  
+  # Start as a service
+  apptainer instance start skel3d.sif skel3d-service
+  
+  # Stop the service
+  apptainer instance stop skel3d-service
+
+For more information about the API endpoints, access the Swagger documentation
+at http://localhost:8003/docs once the service is running.

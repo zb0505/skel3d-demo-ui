@@ -1,0 +1,104 @@
+Bootstrap: docker
+From: nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+
+%post
+	# Install Python and other tools
+	apt update && apt install -y python3 python3-pip python3-dev wget git
+
+	# Clone SAM2
+	git clone https://github.com/facebookresearch/sam2.git /opt/sam2
+
+	# Download SAM2 checkpoint
+	mkdir /opt/sam2/sam_checkpoints
+	wget -O /opt/sam2/sam_checkpoints/sam2.1_hiera_tiny.pt https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_tiny.pt
+
+	# Copy API files
+	cp /mnt/.env /mnt/demo_models.py /mnt/sam2_api.py /mnt/sam2_utils.py /mnt/main.py /opt/sam2
+
+	# Copy requirements.txt files
+	cp /mnt/requirements/requirements_base.txt /opt/sam2
+
+	# Copy test files
+	cp /mnt/tests/pytest.ini /opt/sam2
+	cp -r /mnt/images /opt/sam2/images
+	cp /mnt/common_utils.py /mnt/tests/test_sam2_api.py /opt/sam2
+
+	# Install dependencies
+	pip3 install -r /opt/sam2/requirements_base.txt
+	pip3 install -e /opt/sam2
+
+	# Change permissions
+	chmod 755 -R /opt
+
+%startscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+
+	# Start API service
+	cd /opt/sam2
+	exec python3 main.py sam2_api 8001
+
+%runscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+
+	# If test was required, run test script
+	if [ "$1" = "--test" ]; then
+		cd /opt/sam2
+		exec python3 -m pytest test_sam2_api.py
+	
+	# Otherwise start container shell
+	else
+		exec bash
+	fi
+
+%test
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	
+	# Build-in apptainer test command
+	cd /opt/sam2
+	exec python3 -m pytest test_sam2_api.py
+
+%help
+╔════════════════════════════════════════════════════════════╗
+║                     SAM2 Container                         ║
+╚════════════════════════════════════════════════════════════╝
+
+DESCRIPTION:
+  Segment Anything 2 (SAM2) is a powerful image segmentation model.
+  This container provides an API for generating image segmentation masks.
+  Used by the Skel3D demo app.
+
+USAGE:
+  apptainer run [apptainer options] sam2.sif [options]
+
+  The --nv flag is REQUIRED to enable GPU acceleration.
+
+OPTIONS:
+  --test         Run the test suite
+  (no options)   Start an interactive shell
+
+SERVICE MODE:
+  apptainer instance start sam2.sif sam2-service
+  
+  The container will start the API service on port 8001
+  Access the API at http://localhost:8001
+
+EXAMPLES:
+  # Run the container with an interactive shell
+  apptainer run sam2.sif
+  
+  # Run the test suite
+  apptainer run sam2.sif --test
+  # or
+  apptainer test sam2.sif
+  
+  # Start as a service
+  apptainer instance start sam2.sif sam2-service
+  
+  # Stop the service
+  apptainer instance stop sam2-service
+
+For more information about the API endpoints, access the documentation
+at http://localhost:8001/docs once the service is running.

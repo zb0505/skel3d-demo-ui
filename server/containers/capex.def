@@ -1,0 +1,124 @@
+Bootstrap: docker
+From: matanru/capex:latest
+
+%post
+	# Install wget
+	apt update && apt install -y wget
+
+	# Clone CapeX and download pretrained models
+	git clone https://github.com/matanr/capex.git /opt/capex
+	mkdir /opt/capex/pretrained
+	wget -O /opt/capex/pretrained/swinv2_small_1k_500k.pth https://huggingface.co/zdaxie/SimMIM/resolve/main/simmim_swinv2_pretrain_models/swinv2_small_1k_500k.pth?download=true
+	# This file is hosted on Google Drive and thus cannot be downloaded automatically -> copy it from /mnt
+	cp /mnt/capex-split1.pth /opt/capex/swin-gte-split1.pth
+
+	# Copy API files and create output folder for debugging
+	cp /mnt/demo_models.py /mnt/capex_api.py /mnt/main.py /opt/capex
+	mkdir -p /opt/capex/output
+
+	# Copy requirements.txt files
+	cp /mnt/requirements/requirements_base.txt /opt/capex
+	
+	# Copy test files
+	cp /mnt/tests/pytest.ini /opt/capex
+	cp -r /mnt/images /opt/capex/images
+	cp /mnt/.env /mnt/common_utils.py /mnt/tests/test_capex_api.py /opt/capex
+	
+	# CapeX utils script may be inside the capex folder during development, make sure to copy it
+	if [ -f "/mnt/capex/capex_utils.py" ]; then
+		cp /mnt/capex/capex_utils.py /opt/capex
+
+	# If not found, that means it is inside the current folder
+	else
+		cp /mnt/capex_utils.py /opt/capex
+	fi
+
+	# Install dependencies
+	pip3 install -r /opt/capex/requirements_base.txt
+
+	# Change permissions
+	chmod 755 -R /opt
+
+%environment
+	# Set all PyTorch and related cache directories to writable location
+	export PYTORCH_KERNEL_CACHE_PATH=/tmp/capex_cache
+	export TORCH_HOME=/tmp/capex_cache
+	export XDG_CACHE_HOME=/tmp/capex_cache
+	export HUGGINGFACE_HUB_CACHE=/tmp/capex_cache/huggingface
+	export TRANSFORMERS_CACHE=/tmp/capex_cache/transformers
+	export HF_HOME=/tmp/capex_cache/hf
+
+%startscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	mkdir -p /tmp/capex_cache
+
+	# Start API service
+	cd /opt/capex
+	exec python3 main.py capex_api 8004
+
+%runscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	mkdir -p /tmp/capex_cache
+
+	# If test was required, run test script
+	if [ "$1" = "--test" ]; then
+		cd /opt/capex
+		exec python3 -m pytest test_capex_api.py
+	
+	# Otherwise start container shell
+	else
+		exec bash
+	fi
+
+%test
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	mkdir -p /tmp/capex_cache
+	
+	# Build-in apptainer test command
+	cd /opt/capex
+	exec python3 -m pytest test_capex_api.py
+
+%help
+╔════════════════════════════════════════════════════════════╗
+║                     CapeX Container                        ║
+╚════════════════════════════════════════════════════════════╝
+
+DESCRIPTION:
+  CapeX is a model for pose estimation.
+  Used by the Skel3D demo app.
+
+USAGE:
+  apptainer run [apptainer options] capex.sif [options]
+
+  The --nv flag is REQUIRED to enable GPU acceleration.
+
+OPTIONS:
+  --test         Run the test suite
+  (no options)   Start an interactive shell
+
+SERVICE MODE:
+  apptainer instance start --nv capex.sif capex-service
+  
+  The container will start the API service on port 8004
+  Access the API at http://localhost:8004
+
+EXAMPLES:
+  # Run the container with an interactive shell
+  apptainer run --nv capex.sif
+  
+  # Run the test suite
+  apptainer run --nv capex.sif --test
+  # or
+  apptainer test capex.sif
+  
+  # Start as a service
+  apptainer instance start --nv capex.sif capex-service
+  
+  # Stop the service
+  apptainer instance stop capex-service
+
+For more information about the API endpoints, access the documentation
+at http://localhost:8004/docs once the service is running.

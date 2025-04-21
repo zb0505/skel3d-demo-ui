@@ -1,0 +1,136 @@
+Bootstrap: docker
+From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+
+%post
+    # Set non-interactive mode for apt
+    export DEBIAN_FRONTEND=noninteractive
+    ln -fs /usr/share/zoneinfo/Europe/Budapest /etc/localtime
+    echo "Europe/Budapest" > /etc/timezone
+
+    # Install Python and other dependencies
+    apt update && apt install -y \
+        python3 python3-pip python3-dev tensorrt \
+        git libxcb-xinerama0 wget \
+        build-essential
+
+    # Install TensorFlow with GPU support and other dependencies
+    pip3 install --upgrade pip
+    pip3 install tensorflow==2.12.0
+	pip3 install tensorflow-hub==0.14.0 numpy==1.24.3 pillow
+    
+    # Fix for potential libdevice issues with XLA JIT compilation
+    mkdir -p /usr/local/cuda/nvvm/libdevice/
+    if [ -f "/usr/local/cuda/lib64/libdevice.10.bc" ]; then
+        ln -sf /usr/local/cuda/lib64/libdevice.10.bc /usr/local/cuda/nvvm/libdevice/
+    elif [ -f "/usr/local/cuda/nvvm/libdevice/libdevice.10.bc" ]; then
+        # Already in the right place
+        echo "libdevice.10.bc already in the correct location"
+    else
+        echo "Warning: libdevice.10.bc not found"
+    fi
+
+    # Clone MeTRAbs
+    git clone https://github.com/isarandi/metrabs.git /opt/metrabs
+
+	# Copy API files
+    cp /mnt/.env /mnt/demo_models.py /mnt/metrabs_api.py /mnt/metrabs_utils.py /mnt/main.py /opt/metrabs
+
+	# Copy requirements.txt files
+	cp /mnt/requirements/requirements_base.txt /opt/metrabs
+
+	# Copy test files
+	cp /mnt/tests/pytest.ini /opt/metrabs
+	cp -r /mnt/images /opt/metrabs/images
+	cp /mnt/common_utils.py /mnt/tests/test_metrabs_api.py /opt/metrabs
+
+	# Install dependencies
+	pip3 install -r /opt/metrabs/requirements_base.txt
+
+	# Change permissions
+	chmod 755 -R /opt
+
+%environment
+    # Set CUDA environment variables
+    export PATH=/usr/local/cuda/bin:$PATH
+    export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+    export PYTHONPATH=/opt/metrabs:$PYTHONPATH
+    
+    # TensorFlow GPU settings
+    export TF_FORCE_GPU_ALLOW_GROWTH=true
+    export XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/local/cuda
+    
+    # Ensure cuDNN is properly detected
+    export CUDNN_PATH=/usr/lib/x86_64-linux-gnu/libcudnn.so
+
+%startscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	
+	# Start API service
+	cd /opt/metrabs
+	exec python3 main.py metrabs_api 8002
+
+%runscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+
+    # If test was required, run test script
+	if [ "$1" = "--test" ]; then
+		cd /opt/metrabs
+		exec python3 -m pytest test_metrabs_api.py
+	
+	# Otherwise start container shell
+	else
+		exec bash
+	fi
+
+%test
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	
+	# Build-in apptainer test command
+	cd /opt/metrabs
+	exec python3 -m pytest test_metrabs_api.py
+
+%help
+╔════════════════════════════════════════════════════════════╗
+║                   MeTRAbs Container                        ║
+╚════════════════════════════════════════════════════════════╝
+
+DESCRIPTION:
+  MeTRAbs is a state-of-the-art 3D human pose estimation model.
+  This container provides GPU-accelerated pose detection via an API.
+  Built with TensorFlow 2.12.0 and CUDA 11.8.
+
+USAGE:
+  apptainer run [apptainer options] metrabs.sif [options]
+
+  The --nv flag is REQUIRED to enable GPU acceleration.
+
+OPTIONS:
+  --test         Run the test suite
+  (no options)   Start an interactive shell
+
+SERVICE MODE:
+  apptainer instance start --nv metrabs.sif metrabs-service
+  
+  The container will start the API service on port 8002
+  Access the API at http://localhost:8002
+
+EXAMPLES:
+  # Run the container with an interactive shell
+  apptainer run --nv metrabs.sif
+  
+  # Run the test suite
+  apptainer run --nv metrabs.sif --test
+  # or
+  apptainer test metrabs.sif
+  
+  # Start as a service
+  apptainer instance start --nv metrabs.sif metrabs-service
+  
+  # Stop the service
+  apptainer instance stop metrabs-service
+
+For more information about the API endpoints, access the documentation
+at http://localhost:8002/docs once the service is running.

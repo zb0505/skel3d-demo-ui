@@ -1,0 +1,96 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%post
+	# Install Python
+	apt update && apt install -y python3 python3-pip python3-dev
+
+	# Create target directory
+	mkdir /opt/demo_api
+
+	# Copy API files
+	cp /mnt/.env /mnt/demo_models.py /mnt/demo_api.py /mnt/main.py /opt/demo_api
+
+	# Copy requirements.txt files
+	cp /mnt/requirements/requirements_base.txt /mnt/requirements/requirements_demo.txt /opt/demo_api
+
+	# Copy test files
+	cp /mnt/tests/pytest.ini /opt/demo_api
+	cp -r /mnt/images /opt/demo_api/images
+	cp /mnt/common_utils.py /mnt/tests/test_demo_api.py /opt/demo_api
+
+	# Install dependencies
+	pip3 install -r /opt/demo_api/requirements_demo.txt
+
+	# Change permissions
+	chmod 755 -R /opt
+
+%startscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+
+	# Start API service
+	cd /opt/demo_api
+	exec python3 main.py demo_api 8000
+
+%runscript
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+
+	# If test was required, run test script
+	if [ "$1" = "--test" ]; then
+		cd /opt/demo_api
+		exec python3 -m pytest test_demo_api.py
+	
+	# Otherwise start container shell
+	else
+		exec bash
+	fi
+
+%test
+	# Init cache directories
+	mkdir -p /tmp/pytest_cache
+	
+	# Build-in apptainer test command
+	cd /opt/demo_api
+	exec python3 -m pytest test_demo_api.py
+
+%help
+╔════════════════════════════════════════════════════════════╗
+║                     Demo API Container                     ║
+╚════════════════════════════════════════════════════════════╝
+
+DESCRIPTION:
+  The container providing API access to various models.
+  Used by the Skel3D demo app.
+
+USAGE:
+  apptainer run [apptainer options] demo_api.sif [options]
+
+OPTIONS:
+  --test         Run the test suite
+  (no options)   Start an interactive shell
+
+SERVICE MODE:
+  apptainer instance start demo_api.sif demo-api-service
+  
+  The container will start the API service on port 8000
+  Access the API at http://localhost:8000
+
+EXAMPLES:
+  # Run the container with an interactive shell
+  apptainer run demo_api.sif
+  
+  # Run the test suite
+  apptainer run demo_api.sif --test
+  # or
+  apptainer test demo_api.sif
+  
+  # Start as a service
+  apptainer instance start demo_api.sif demo-api-service
+  
+  # Stop the service
+  apptainer instance stop demo-api-service
+
+For more information about the API endpoints, access the Swagger documentation
+at http://localhost:8000/docs once the service is running.
