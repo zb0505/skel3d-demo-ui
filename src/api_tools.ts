@@ -108,7 +108,9 @@ export interface Skel3DInput {
 	/** Camera extrinsic matrix of the input image (origin) */
 	src_camera: ExtrinsicMatrix,
 	/** Camera extrinsic matrix of the target view (rotation target) */
-	target_camera: ExtrinsicMatrix
+	target_camera: ExtrinsicMatrix,
+	/** Rotation vector in Euler angles (XYZ in radians) */
+	rotation: Point3D
 }
 // #endregion
 
@@ -254,15 +256,16 @@ export default class API {
 	 * @param image The segmentated input image as base64
 	 * @param joints The 3D joints of the skeleton
 	 * @param bones The bones of the skeleton
+	 * @param rotation The rotation vector in Euler angles (XYZ in radians)
 	 * @param srcCamera The camera extrinsic matrix of the input image
 	 * @param targetCamera The camera extrinsic matrix of the target view
 	 * @returns The generated view as base64
 	 */
 	public static async skel3D(
-		image: string, joints: Point3D[], bones: Point2D[],
+		image: string, joints: Point3D[], bones: Point2D[], rotation: Point3D,
 		srcCamera: ExtrinsicMatrix, targetCamera: ExtrinsicMatrix
 	): Promise<Skel3DResponse["predictions"]> {
-		const resp = await this.fetch("/skel3d", { image, joints, bones, src_camera: srcCamera, target_camera: targetCamera })
+		const resp = await this.fetch("/skel3d", { image, joints, bones, rotation, src_camera: srcCamera, target_camera: targetCamera })
 		if (resp?.status !== 200) return null
 		return resp.json.predictions
 	}

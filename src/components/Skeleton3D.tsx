@@ -110,7 +110,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 			camera.aspect = width / height
 			camera.updateProjectionMatrix()
 			controls.update()
-			this.resetCamera()
+			//this.resetCamera()
 		})
 	}
 
