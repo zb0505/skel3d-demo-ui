@@ -18,18 +18,18 @@ class BaseController:
 	"""Base controller class for the API endpoints"""
 	def __init__(self, tags: list[str] = None):
 		"""Initializes the controller with the given endpoint (endpoint name is the key in the .env file)"""
-		self.config = dotenv_values(".env")
+		self._config = dotenv_values(".env")
 		"""Configuration values from .env file"""
-		self.version = self.config["VERSION"]
+		self.version = self._config["VERSION"]
 		"""API version"""
-		self.api_key = self.config["API_KEY"]
+		self._api_key = self._config["API_KEY"]
 		"""API key for authorization"""
 		self.router = APIRouter(tags=tags)
 		"""APIRouter instance for the controller"""
 
 	def verify_auth(self, authorization: str | None):
 		"""Verifies the authorization header"""
-		if not authorization or authorization != self.api_key:
+		if not authorization or authorization != self._api_key:
 			print("Authorization failed:", authorization)
 			raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -56,7 +56,7 @@ class SegmentationController(BaseController):
 		# Authorize the user with API key
 		self.verify_auth(authorization)
 		# Query SAM2 API and return result
-		resp = self.query(self.config["SAM2_ENDPOINT"], data)
+		resp = self.query(self._config["SAM2_ENDPOINT"], data)
 		return resp if resp else { "segmentation": None, "preview": None, "bbox": None }
 
 
@@ -75,7 +75,7 @@ class SkeletonController(BaseController):
 		# Authorize the user with API key
 		self.verify_auth(authorization)
 		# Query MeTRAbs API and return result
-		resp = self.query(self.config["METRABS_ENDPOINT"], data)
+		resp = self.query(self._config["METRABS_ENDPOINT"], data)
 		return resp if resp else { "skeleton": None, "original": None, "bones": None, "minmax": None }
 
 	# POST /skeleton_capex
@@ -84,7 +84,7 @@ class SkeletonController(BaseController):
 		# Authorize the user with API key
 		self.verify_auth(authorization)
 		# Query CapeX API and return result
-		resp = self.query(self.config["CAPEX_ENDPOINT"], data)
+		resp = self.query(self._config["CAPEX_ENDPOINT"], data)
 		return resp if resp else { "skeleton": None, "original": None, "minmax": None }
 
 
@@ -102,7 +102,7 @@ class Skel3DController(BaseController):
 		# Authorize the user with API key
 		self.verify_auth(authorization)
 		# Query Skel3D API and return result
-		resp = self.query(self.config["SKEL3D_ENDPOINT"], data)
+		resp = self.query(self._config["SKEL3D_ENDPOINT"], data)
 		return resp if resp else { "predictions": None }
 
 
