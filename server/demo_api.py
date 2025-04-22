@@ -3,7 +3,6 @@ Demo API main router (for clustered API endpoints)
 The endpoints call the respective APIs and return the results
 """
 
-
 # Imports
 import requests
 from typing import Annotated
@@ -27,7 +26,7 @@ class BaseController:
 		"""API key for authorization"""
 		self.router = APIRouter(tags=tags)
 		"""APIRouter instance for the controller"""
-	
+
 	def verify_auth(self, authorization: str | None):
 		"""Verifies the authorization header"""
 		if not authorization or authorization != self.api_key:
@@ -129,13 +128,15 @@ class DemoAPI:
 		self.configure_cors()
 
 		# Init controllers
-		self.segmentation_controller = SegmentationController()
-		self.skeleton_controller = SkeletonController()
-		self.skel3d_controller = Skel3DController()
+		self.controllers: list[BaseController] = [
+			SegmentationController(),
+			SkeletonController(),
+			Skel3DController(),
+		]
 
 		# Configure routes
 		self.configure_routes()
-	
+
 	def configure_cors(self):
 		"""Configures CORS middleware for the API"""
 		self.app.add_middleware(
@@ -143,16 +144,18 @@ class DemoAPI:
 			allow_origins=self.origins,
 			allow_credentials=True,
 			allow_methods=["*"],
-			allow_headers=["*"]
+			allow_headers=["*"],
 		)
 
 	def configure_routes(self):
 		"""Configures the routes for the API"""
-		self.app.include_router(self.segmentation_controller.router)
-		self.app.include_router(self.skeleton_controller.router)
-		self.app.include_router(self.skel3d_controller.router)
+		for controller in self.controllers:
+			# Include the router for each controller
+			self.app.include_router(controller.router)
+
+		# Add index route
 		self.app.add_api_route("/", self.index, methods=["GET"], tags=["Status"])
-	
+
 	# GET /
 	async def index(self):
 		"""Index route for the API"""
