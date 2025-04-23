@@ -1,4 +1,5 @@
 import * as bootstrap from "bootstrap"
+import { Utils } from "./api_tools"
 
 
 // Bootstrap toast tools
@@ -7,15 +8,6 @@ export type ToastType = "info" | "success" | "warn" | "fail"
 
 /** Toast utilities */
 export default class ToastUtils {
-	/** NodeJS `EventEmitter.once` implementation */
-	static once(element: Element | null, event: string, listener: (event: Event) => void) {
-		const handler = (args: Event) => {
-			listener(args)
-			element?.removeEventListener(event, handler)
-		}
-		element?.addEventListener(event, handler)
-	}
-	
 	/** Creates a toast of the given type (defaults to `info`) */
 	static makeToast(message: string, type: ToastType = "info") {
 		const container = document.getElementById("toasts")
@@ -41,7 +33,7 @@ export default class ToastUtils {
 				break
 		}
 		const bsToast = bootstrap.Toast.getOrCreateInstance(toast, { animation: true, autohide: true })
-		this.once(toast, "hidden.bs.toast", () => container?.removeChild(toast))
+		Utils.once(toast, "hidden.bs.toast", () => container?.removeChild(toast))
 		bsToast.show()
 	}
 }

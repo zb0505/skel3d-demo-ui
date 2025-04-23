@@ -245,7 +245,7 @@ export default class API {
 	 * @param keypoints Textual description of keypoints on the image
 	 * @returns The detected keypoints
 	 */
-	public static async skeleton_capex(image: string, keypoints: string[], skeleton: CapeXInput["skeleton"]): Promise<CapeXResponse> {
+	public static async skeletonCapex(image: string, keypoints: string[], skeleton: CapeXInput["skeleton"]): Promise<CapeXResponse> {
 		const resp = await this.fetch("/skeleton_capex", { image, keypoints, skeleton })
 		if (resp?.status !== 200) return { skeleton: [], minmax: [], original: [] }
 		return resp.json

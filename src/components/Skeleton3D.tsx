@@ -211,7 +211,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 			const kps = this.getKeypoints(this.keypoints)
 			const img = this.context.segmentation ?? await Utils.fileToDataUrl(this.context.inFile)
 			this.connections = this.buildConnections(this.keypoints)
-			this.activeApiCall = API.skeleton_capex(img, kps, this.connections).then(data => {
+			this.activeApiCall = API.skeletonCapex(img, kps, this.connections).then(data => {
 				this.minmax = data.minmax || []
 				this.skeleton = data.original?.map(xy => [...xy, 0]) || []
 				this.setState({ skeletonData: data.skeleton || [] })

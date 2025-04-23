@@ -2,36 +2,20 @@ import { Component, ReactNode } from "react"
 import FileUpload from "./components/FileUpload"
 import Skeleton3D from "./components/Skeleton3D"
 import DemoOutput from "./components/DemoOutput"
-import API, { Point3D, Utils } from "./api_tools"
+import API, { Utils } from "./api_tools"
 import { AppContext } from "./contexts/AppContextProvider"
 import "bootstrap/dist/css/bootstrap.min.css"
 import "./App.css"
 
 
-// App states
-export interface AppState {
-	inFile: Blob | null,
-	currSkel: Point3D[] | null,
-	targetSkel: Point3D[] | null,
-	loading: boolean,
-	reset: boolean,
-	step: number,
-	forwardBtn: {
-		text: string,
-		enabled: boolean,
-		click: () => void
-	}
-}
-
-
 // App root component
-export default class App extends Component<unknown, unknown, AppState> {
+export default class App extends Component<unknown> {
 	// App context
 	static contextType = AppContext
 	declare context: React.ContextType<typeof AppContext>
 
 	// Constructor
-	constructor(props: object) {
+	constructor(props: unknown) {
 		super(props)
 	}
 
