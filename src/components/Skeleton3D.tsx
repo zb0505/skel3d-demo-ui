@@ -188,7 +188,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 
 	/**
 	 * Calculates the relative rotation of 2 extrinsic matrices.
-	 * @returns Euler angles as XYZ tuple in radians
+	 * @returns Euler angles as XYZ tuple in radians (OpenCV convention)
 	 */
 	private getRelativeRotation(sourceExtrinsic: Three.Matrix4, targetExtrinsic: Three.Matrix4): Point3D {
 		// Extract rotation matrices
@@ -199,7 +199,12 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		const sourceInv = source.clone().invert()
 		const relativeRot = new Three.Matrix4().multiplyMatrices(sourceInv, target)
 		const euler = new Three.Euler().setFromRotationMatrix(relativeRot)
-		return [euler.x, euler.y, euler.z]
+		if (API.isDebug) console.log("[Skeleton3D] Relative rotation (OpenCV convention):",
+			"\n  X:", euler.x * 180 / Math.PI,
+			"\n  Y:", -euler.y * 180 / Math.PI,
+			"\n  Z:", -euler.z * 180 / Math.PI
+		)
+		return [euler.x, -euler.y, -euler.z]
 	}
 
 	/** Runs skeleton generation API call */
@@ -283,8 +288,8 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 	private generateClicked(): void {
 		// Extract camera properties and update context state
 		const targetCamera = this.getExtrinsicMatrix(this.camera!)
-		const sourceMtx = new Three.Matrix4().fromArray(this.srcCamera!.flat() as Three.Matrix4Tuple)
-		const targetMtx = new Three.Matrix4().fromArray(targetCamera.flat() as Three.Matrix4Tuple)
+		const sourceMtx = new Three.Matrix4().fromArray(this.srcCamera!.flat() as Three.Matrix4Tuple).invert()
+		const targetMtx = new Three.Matrix4().fromArray(targetCamera.flat() as Three.Matrix4Tuple).invert()
 		this.context.updateState({
 			skeleton: this.skeleton,
 			bones: this.connections,

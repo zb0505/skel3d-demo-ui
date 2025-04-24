@@ -52,7 +52,7 @@ export default class DemoOutput extends Component<unknown, DemoOutputState> {
 			this.context.setLoading(false)
 			this.context.updateForwardBtn({ enabled: true })
 			if (!outputs || outputs.length < 1) ToastUtils.makeToast("Failed to generate target view", "fail")
-			else this.setState({ outputUrls: outputs })
+			this.setState({ outputUrls: outputs || [] })
 			if (API.isDebug) console.log("[DemoOutput] Target view generation successful:", outputs && outputs.length > 0)
 			this.activeApiCall = null
 		})
