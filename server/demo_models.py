@@ -86,8 +86,8 @@ class Skel3DInput(BaseModel):
 	"""The source view camera extrinsic matrix (square, 4x4)"""
 	target_camera: list[tuple[float, float, float, float]]
 	"""The target view camera extrinsic matrix (square, 4x4)"""
-	#rotation: tuple[float, float, float]
-	#"""The rotation described in Euler angles (XYZ in radians)"""
+	rotation: tuple[float, float, float]
+	"""The rotation described in Euler angles (XYZ in radians, OpenCV convention)"""
 
 class Skel3DOutput(BaseModel):
 	"""Output data schema for the Skel3D API"""

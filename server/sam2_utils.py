@@ -88,7 +88,8 @@ def generate_masks(input_image: Image.Image, pos_points: list[tuple[int, int]] =
 	# Return masked image and mask as RGB-compatible image
 	image = np.array(input_image.convert("RGBA"))
 	image[mask == 0, 3] = 0
-	return image, (mask.astype(np.uint8).reshape(mask.shape[0], mask.shape[1], 1) * np.array([255, 255, 255], dtype=np.uint8)).astype(np.uint8)
+	mask_image = (mask.astype(np.uint8).reshape(mask.shape[0], mask.shape[1], 1) * np.array([255, 255, 255], dtype=np.uint8)).astype(np.uint8)
+	return image, mask_image
 
 
 # Generate masks for example image when the script is run directly

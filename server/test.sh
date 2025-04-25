@@ -52,7 +52,7 @@ run_test() {
 	if [ ! -f "$container.sif" ]; then
 		echo -e "\n\e[33m$name container not found. Skipping...\e[0m"
 		return
-	elif [ -n "$test_containers" ] && ! should_test "$container" ]; then
+	elif [ -n "$test_containers" ] && ! should_test "$container"; then
 		echo -e "\n\e[33mSkipping $name...\e[0m"
 		return
 	fi
@@ -70,6 +70,7 @@ run_test() {
 	echo "$test_output"
 	
 	# Parse test results
+	test_output=$(echo "$test_output" | grep -E '^=+ [0-9]+ (passed|failed|warning|skipped|error)' | tail -1)
 	passed=$(echo "$test_output" | grep -o '[0-9]* passed' | grep -o '[0-9]*' || echo 0)
 	failed=$(echo "$test_output" | grep -o '[0-9]* failed' | grep -o '[0-9]*' || echo 0)
 	warnings=$(echo "$test_output" | grep -o '[0-9]* warning' | grep -o '[0-9]*' || echo 0)
@@ -103,7 +104,7 @@ run_test() {
 	fi
 	# Errors
 	if [ "$errors" -gt 0 ]; then
-		echo -e "\e[1;35mErrors: $errors\e[0m"
+		echo -e "\e[1;31mErrors: $errors\e[0m"
 	else
 		echo -e "Errors: 0"
 	fi
@@ -126,29 +127,29 @@ any_failures=0
 echo -e "\e[1;35m========== Starting Tests ==========\e[0m\n"
 
 run_test "demo_api" "Demo API"
-if [ $? -gt 0 ]; then any_failures=1; fi
+if [ "$?" -gt 0 ]; then any_failures=1; fi
 
 run_test "sam2" "SAM2" "--nv"
-if [ $? -gt 0 ]; then any_failures=1; fi
+if [ "$?" -gt 0 ]; then any_failures=1; fi
 
 run_test "metrabs" "MeTRAbs" "--nv"
-if [ $? -gt 0 ]; then any_failures=1; fi
+if [ "$?" -gt 0 ]; then any_failures=1; fi
 
 run_test "capex" "CapeX" "--nv"
-if [ $? -gt 0 ]; then any_failures=1; fi
+if [ "$?" -gt 0 ]; then any_failures=1; fi
 
 run_test "skel3d" "Skel3D" "--nv"
-if [ $? -gt 0 ]; then any_failures=1; fi
+if [ "$?" -gt 0 ]; then any_failures=1; fi
 
 echo -e "\n\e[1;35m========== Test Summary ==========\e[0m"
 
 
 # Print final status
-if [ $any_failures -eq 0 ]; then
+if [ "$any_failures" -eq 0 ]; then
 	echo -e "\n\e[1;32mAll tests passed ($total_passed / $total_passed)\e[0m\n"
 	exit 0
 else
-	echo -e "\e[1;32mPassed: $total_passed\e[0m"
-	echo -e "\e[1;31mFailed: $total_failed\e[0m"
+	echo -e "\n\e[1;32mPassed: $total_passed\e[0m"
+	echo -e "\e[1;31mFailed: $total_failed\e[0m\n"
 	exit 1
 fi

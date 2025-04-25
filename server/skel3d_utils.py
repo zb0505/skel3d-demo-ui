@@ -6,13 +6,14 @@ Initializes the Skel3D model and exports a function to generate the target view 
 
 
 # Imports
-import os, torch
-import numpy as np
-
+import os, torch, math
 from PIL import Image
 from einops import rearrange
 from batch_test import tensor2image
-from skel3d_init import data_provider, model, config
+from skel3d_init import data_provider, models
+from skel3d_utils_v2 import calculate_rotation_from_camera
+from models.ddim import DDIMSampler
+from contextlib import nullcontext
 
 
 # Generate output image
@@ -23,6 +24,12 @@ def generate_images(
 	src_camera: list[tuple[float, float, float, float]],
 	tgt_camera: list[tuple[float, float, float, float]]
 ) -> list[Image.Image]:
+	# Define constants
+	model = models["free3d"]
+	n_samples, scale = 1, 3.0
+	ddim_steps, ddim_eta = 50, 1.0
+	h, w = 256, 256
+
 	# Convert data to the format expected by the model
 	data = data_provider.pre_data({
 		"image": input_image,
@@ -44,28 +51,59 @@ def generate_images(
 		input_image.save("tmp_input_image_skel3d.png")
 		img = rearrange(tensor2image(data["images"][:, 0]), "b h w c-> b c h w")
 		Image.fromarray(img[0]).save("tmp_input_transformed_skel3d.png")
+	
+	# Transform skeleton for conditioning and get unconditional conditioning
+	zi, c_cond, xi, xrec, xc , xs, skels = model.get_input(
+		data, models["free3d"].first_stage_key,
+		return_first_stage_outputs=True,
+		force_c_encode=True,
+		return_original_cond=True,
+		bs=data["images"].size()[0],
+		train=False
+	)
 
 	# Generate target view
-	images = model.log_images(data,
-		N=data["images"].size()[0], n_row=data["images"].size()[0],
-		ddim_steps=50, inpaint=True, plot_progressive_rows=False, plot_diffusion_rows=False,
-		unconditional_guidance_scale=3.0, unconditional_guidance_label=[""], use_ema_scope=False)
-	print("[Skel3D Utils V1] Generated images:", len(images), ", type:", type(images), ", keys:", images.keys())
+	sampler = DDIMSampler(models['free3d'])
+	precision_scope = nullcontext
+	images = []
+	with precision_scope('cuda'):
+		with models['free3d'].ema_scope():
+			# Get conditional input
+			cond = c_cond
 
-	# Return images
-	outputs, output_keys = [], ["reconstruction", "samples_cfg_scale_3.00"]
-	for k in images:
-		print(f"[Skel3D Utils V1] Key: {k}, type:", type(images[k]))
-		if isinstance(images[k], torch.Tensor) and k in output_keys: # Only include images with the specified keys
-			print("[Skel3D Utils V1] Image shape:", images[k].size(), ", data shape:", data['images'].size())
-			if images[k].size(0) == data['images'].size()[0]:
-				grid = tensor2image(images[k])
+			# Get unconditional conditioning
+			if scale != 1.0:
+				uc = model.get_unconditional_conditioning(xi.shape[0], [""], image_size=xi.shape[-1])
 			else:
-				grid = tensor2image(rearrange(images[k], '(b v) ... -> b v ...', v=config.model.params.unet_config.params.views)[:,1,...])
-			print("[Skel3D Utils V1] Grid shape:", grid.shape)
+				uc = None
+
+			samples_ddim, _ = sampler.sample(
+				S=ddim_steps,
+				batch_size=1,
+				shape=[4, h // 8, w // 8],
+				conditioning=cond,
+				eta=ddim_eta,
+				temperature=0.3,
+				unconditional_guidance_scale=scale,
+				unconditional_conditioning=uc,
+				repeat_noise=True,
+			)
+			x_samples = models['free3d'].decode_first_stage(samples_ddim)
+			print("[Skel3D Utils V1] Samples DDIM shape:", samples_ddim.shape, ", samples shape:", x_samples.shape)
+
+			grid = tensor2image(x_samples)
+			grid = rearrange(grid, '(b v) ... -> b v ...', b=n_samples)
 			for i in range(grid.shape[0]):
-				outputs.append(Image.fromarray(grid[i]))
-	return outputs
+				for j in range(grid.shape[1]):
+					images.append(Image.fromarray(grid[i][j]))
+					# Save each image step when debugging
+					if "/opt" not in os.path.realpath(__file__):
+						outfile = f"tmp_output_skel3d_{i}_{j}.png"
+						images[-1].save(outfile)
+						print(f"Saved output image '{outfile}'")
+						
+	# Return generated images
+	return images
 
 
 # Generate output when run directly

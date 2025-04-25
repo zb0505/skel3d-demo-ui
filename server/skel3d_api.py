@@ -7,6 +7,7 @@ if the object was rotated to the target position from the input position
 
 # Imports
 import base64
+import traceback
 from io import BytesIO
 from fastapi import FastAPI
 from PIL import Image, ImageOps
@@ -43,22 +44,32 @@ class Skel3DAPI:
 		img = ImageOps.exif_transpose(img)  # Rotate image according to EXIF data
 		img_bytes = BytesIO() # Format required for v2 utils (processes image internally which uses Image.open)
 		img.save(img_bytes, format="png")
+		outputs, outputs_v2 = [], []
 
-		# Run Skel3D predictions
-		outputs = generate_images(
-			input_image=img,
-			joints=data.joints,
-			bones=data.bones,
-			src_camera=data.src_camera[:-1],
-			tgt_camera=data.target_camera[:-1]
-		) # Expects 3x4 extrinsics
-		outputs_v2 = generate_images_v2(
-			input_image=img_bytes,
-			joints=data.joints,
-			bones=data.bones,
-			src_camera_ext=data.src_camera,
-			tgt_camera_ext=data.target_camera
-		) # Expects 4x4 extrinsics
+		# Run Skel3D V1 predictions
+		try:
+			outputs = generate_images(
+				input_image=img,
+				joints=data.joints,
+				bones=data.bones,
+				src_camera=data.src_camera[:-1],
+				tgt_camera=data.target_camera[:-1]
+			) # Expects 3x4 extrinsics
+		except Exception as e:
+			print("[Skel3D API] Skel3D V1 failed:", traceback.format_exc(), sep="\n")
+		
+		# Run Skel3D V2 predictions
+		try:
+			outputs_v2 = generate_images_v2(
+				input_image=img_bytes,
+				joints=data.joints,
+				bones=data.bones,
+				rotation=data.rotation,
+				src_camera_ext=data.src_camera,
+				tgt_camera_ext=data.target_camera
+			) # Expects 4x4 extrinsics
+		except Exception as e:
+			print("[Skel3D API] Skel3D V2 failed:", traceback.format_exc(), sep="\n")
 
 		# Return images as base64
 		imgs = []

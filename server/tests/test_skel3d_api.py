@@ -18,6 +18,7 @@ class TestSkel3DAPI:
 	# =================== Test route POST /predict ===================
 	skel3d_json = {
 		"image": Utils.load_image("images/humanoid_figure_cutout.png", "RGBA"),
+		"rotation": [0.0, 0.0, 0.0],
 		"joints": [
 			[  -56,  -145,  2071 ],
 			[    2,   -45,  2124 ],

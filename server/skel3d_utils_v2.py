@@ -1,5 +1,5 @@
 """
-Skel3D Utils
+Skel3D Utils V2 (experimental)
 Utility functions for the Skel3D model
 Initializes the Skel3D model and exports a function to generate the target view using the model
 """
@@ -16,7 +16,7 @@ from batch_test import tensor2image
 from test import preprocess_image, get_sample_ray
 from models.ddim import DDIMSampler
 from contextlib import nullcontext
-from skel3d_init import models, device_skel3d as device
+from skel3d_init import models, data_provider, device_skel3d as device
 from kornia.geometry.conversions import rotation_matrix_to_quaternion, euler_from_quaternion
 
 
@@ -62,7 +62,7 @@ def calculate_rotation_from_camera(
 ) -> tuple[torch.Tensor, tuple[float, float, float]]:
 	"""
 	Calculates rotation parameters from camera extrinsics. Uses W2C extrinsics as input.
-	Returns the rotation matrix and Euler angles in degrees
+	Returns the rotation matrix and Euler angles in radians
 	"""
 	
 	# Convert inputs to numpy
@@ -102,7 +102,7 @@ def calculate_rotation_from_camera(
 	])
 	
 	# Return the rotation matrix and Euler angles
-	return T, (np.degrees(x), np.degrees(y), np.degrees(z))
+	return T, (x, y, z)
 
 
 # Generate output image
@@ -112,12 +112,13 @@ def generate_images(
 	bones: list[tuple[int, int]],
 	src_camera_ext: list[tuple[float, float, float, float]],
 	tgt_camera_ext: list[tuple[float, float, float, float]],
+	rotation: tuple[float, float, float] = None,
 	src_camera_int: list[tuple[float, float, float]] = None,
 	tgt_camera_int: list[tuple[float, float, float]] = None
 ) -> list[Image.Image]:
 	# Convert data to suitable format
 	img = preprocess_image(models, input_image)
-	N_views, n_samples, scale = 2, 1, 3.0
+	N_views, n_samples, scale = 1, 1, 3.0
 	ddim_steps, ddim_eta = 50, 1.0
 	h, w = 256, 256
 	extrinsics = torch.tensor(transform_extrinsics([src_camera_ext, tgt_camera_ext]))
@@ -127,11 +128,54 @@ def generate_images(
 		intrinsics = torch.cat((torch.tensor(src_camera_int), torch.tensor(tgt_camera_int)), dim=0).reshape((2, *src_camera_int.shape)).to(device)
 	else: intrinsics = None
 	print("[Skel3D Utils V2] Extrinsics shape:", extrinsics.shape, ", intrinsics shape:", intrinsics.shape if intrinsics else None)
-	T, (x, y, z) = calculate_rotation_from_camera(src_camera_ext, tgt_camera_ext)
+	
+	# If no rotation is provided, calculate it from the camera W2C extrinsics (not always stable)
+	if rotation is None:
+		T, (x, y, z) = calculate_rotation_from_camera(src_camera_ext, tgt_camera_ext)
+	# Use API-provided rotation angles instead of calculating them from W2C extrinsics if provided
+	else:
+		x, y, z = rotation
+		T = torch.tensor([
+			[0, math.sin(0), math.cos(0), 0],
+			[x, math.sin(y), math.cos(y), z]
+		])
 	plucker_ray = get_sample_ray(extrinsics, intrinsics)
-	print("[Skel3D Utils V2] Rotation angles:\n    X:", x, "\n    Y:", y, "\n    Z:", z)
+	print("[Skel3D Utils V2] Rotation angles:",
+		"\n    X:", math.degrees(x),
+		"\n    Y:", math.degrees(y),
+		"\n    Z:", math.degrees(z)
+	)
 
-	# get input image
+	# Get skeleton via DataProvider
+	model = models["free3d"]
+	data = data_provider.pre_data({
+		"image": Image.open(input_image),
+		"bones": bones,
+		"joints": joints,
+		"src_camera": src_camera_ext[:-1].tolist(),
+		"tgt_camera": tgt_camera_ext[:-1].tolist()
+	})
+
+	# Transform skeleton for conditioning and get unconditional conditioning
+	zi, c_cond, xi, xrec, xc , xs, skels = model.get_input(
+		data, models["free3d"].first_stage_key,
+		return_first_stage_outputs=True,
+		force_c_encode=True,
+		return_original_cond=True,
+		bs=data["images"].size()[0],
+		train=False
+	)
+	print("[Skel3D Utils V2] Data:",
+		"\n  zi:", zi.shape,
+		"\n  c_cond:", { k: f"({len(c_cond[k])}) {c_cond[k][0].shape}" if type(c_cond[k]) == list else c_cond[k].shape for k in c_cond.keys() },
+		"\n  xi:", xi.shape,
+		"\n  xrec:", xrec.shape,
+		"\n  xc:", xc.shape,
+		"\n  xs:", xs.shape,
+		"\n  skels:", skels.shape
+    )
+
+	# Get input image
 	src_img = transforms.ToTensor()(img).unsqueeze(0).to(device)
 	src_img = src_img * 2 - 1
 	src_img = transforms.functional.resize(src_img, [h, w])
@@ -141,33 +185,43 @@ def generate_images(
 	images = []
 	with precision_scope('cuda'):
 		with models['free3d'].ema_scope():
-			# get conditional input
+			# Get conditional input
 			src_concat = models['free3d'].encode_first_stage(src_img).mode().detach().unsqueeze(1).repeat(n_samples, N_views, 1, 1, 1)
 			src_concat = rearrange(src_concat, 'b v c h w -> (b v) c h w')
-			# get cross attention condition
+
+			# Get cross attention condition
 			src_cross = models['free3d'].get_learned_conditioning(src_img).unsqueeze(1).repeat(n_samples, N_views, 1, 1)
-			T = T[None, :].to(src_cross.device).repeat(n_samples, 1, 1).unsqueeze(2)
+			T = T[1, :].to(src_cross.device).repeat(n_samples, 1, 1).unsqueeze(2)
+			print("[Skel3D Utils V2] src_cross shape:", src_cross.shape)
+			print("[Skel3D Utils V2] T shape:", T.shape)
 			src_cross = rearrange(torch.cat([src_cross, T], dim=-1), 'b v l c -> (b v) l c')
 			src_cross = models['free3d'].cc_projection(src_cross)
-			# get ray conditioning 
+
+			# Get ray conditioning 
 			pose_emb = models['free3d'].ray_embedding(plucker_ray.to(device)).unsqueeze(1).repeat(n_samples, 1, 1, 1)
 			pose_emb = rearrange(pose_emb, 'b v (h w) c-> (b v) c h w', h=32, w=32)
-			cond = {}
+			print("[Skel3D Utils V2] Conditioning shapes:",
+				"\n  src_concat:", src_concat.shape, "vs c_cond['c_concat']:", c_cond['c_concat'][0].shape,
+				"\n  src_cross:", src_cross.shape, "vs c_cond['c_crossattn']:", c_cond['c_crossattn'][0].shape,
+				"\n  pose_emb:", pose_emb.shape, "vs c_cond['c_pose']:", c_cond['c_pose'].shape,
+				"\n  plucker_ray:", plucker_ray.shape, "  c_cond['c_skel']:", c_cond['c_skel'].shape
+			)
+
+			# Override conditioning values
+			cond = c_cond
 			cond['c_crossattn'] = [src_cross]
 			cond["c_concat"] = [src_concat]
-			cond["c_pose"] = pose_emb
 
+			# Prepare unconditional conditioning
 			if scale != 1.0:
-				uc = {}
-				uc["c_crossattn"] = [torch.zeros_like(src_cross).to(device)]
-				uc["c_concat"] = [torch.zeros_like(src_concat).to(device)]
-				uc["c_pose"] = torch.zeros_like(pose_emb).to(device)
+				uc = model.get_unconditional_conditioning(xi.shape[0], [""], image_size=xi.shape[-1])
 			else:
 				uc = None
 
+			# Generate target view
 			samples_ddim, _ = sampler.sample(
 				S=ddim_steps,
-				batch_size=src_concat.shape[0],
+				batch_size=1,
 				shape=[4, h // 8, w // 8],
 				conditioning=cond,
 				eta=ddim_eta,
@@ -176,13 +230,14 @@ def generate_images(
 				unconditional_conditioning=uc,
 				repeat_noise=True,
 			)
-			print(samples_ddim.shape)
 			x_samples = models['free3d'].decode_first_stage(samples_ddim)
+			print("[Skel3D Utils V2] Samples DDIM shape:", samples_ddim.shape, ", samples shape:", x_samples.shape)
 
+			# Convert output to images
 			grid = tensor2image(x_samples)
 			grid = rearrange(grid, '(b v) ... -> b v ...', b=n_samples)
 			for i in range(grid.shape[0]):
-				for j in range(N_views):
+				for j in range(grid.shape[1]):
 					images.append(Image.fromarray(grid[i][j]))
 					# Save each image step when debugging
 					if "/opt" not in os.path.realpath(__file__):
@@ -199,6 +254,8 @@ if __name__ == "__main__":
 	infile = "./images/humanoid_figure_cutout.png"
 	if not os.path.exists(infile): infile = "../images/humanoid_figure_cutout.png"
 	print(f"Generating output for '{infile}'")
+	# Rotation angles
+	rotation = [math.radians(deg) for deg in [0, 55, 0]]
 	# Source camera extrinsic (test values from API)
 	src_camera_ext = [
 		[-1, 0, 0, 146.00000000000028],
@@ -244,6 +301,7 @@ if __name__ == "__main__":
 	]
 	outputs = generate_images(
 		input_image=f"{infile}",
+		rotation=rotation,
 		joints=[
 			[ -56.940468,  -145.63255,   2071.5398   ],
 			[   2.4743893,  -45.694386,  2124.0872   ],
