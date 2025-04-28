@@ -36,7 +36,7 @@ From: nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
 	# Start API service
 	cd /opt/sam2
-	exec python3 main.py sam2_api 8001
+	exec python3 main.py sam2_api
 
 %runscript
 	# Init cache directories
@@ -82,8 +82,8 @@ OPTIONS:
 SERVICE MODE:
   apptainer instance start sam2.sif sam2-service
   
-  The container will start the API service on port 8001
-  Access the API at http://localhost:8001
+  The container will start the API service on the port defined in the .env file (default: 8001).
+  Access the API at http://localhost:{port}
 
 EXAMPLES:
   # Run the container with an interactive shell

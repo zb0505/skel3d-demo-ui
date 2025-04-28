@@ -110,7 +110,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 	# Start API service
 	. /venv_skel3d/bin/activate
 	cd /opt/skel3d
-	exec python3 main.py skel3d_api 8003
+	exec python3 main.py skel3d_api
 
 %runscript
 	# Init cache directories
@@ -166,8 +166,8 @@ OPTIONS:
 SERVICE MODE:
   apptainer instance start skel3d.sif skel3d-service
   
-  The container will start the API service on port 8003
-  Access the API at http://localhost:8003
+  The container will start the API service on the port defined in the .env file (default: 8003).
+  Access the API at http://localhost:{port}
 
 EXAMPLES:
   # Run the container with an interactive shell

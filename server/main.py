@@ -19,17 +19,27 @@ APP_ENDPOINT_MAP = {
 	"metrabs_api": "METRABS_ENDPOINT"
 }
 
+# App port maps (if unset in .env)
+APP_PORT_MAP = {
+	"demo_api": 8000,
+	"sam2_api": 8001,
+	"metrabs_api": 8002,
+	"skel3d_api": 8003,
+	"capex_api": 8004
+}
+
 # Gets the port for the app based on its name and endpoint
 def get_port(app_name: str) -> int:
 	"""Gets the port for the given app name"""
+	default_port = APP_PORT_MAP[app_name] if app_name in APP_PORT_MAP else 8000
 	if app_name in APP_ENDPOINT_MAP:
 		try:
 			return int(CONFIG[APP_ENDPOINT_MAP[app_name]].split(":")[-1])
 		except (KeyError, ValueError):
-			print(f"[Main] Invalid or missing port for {app_name} in config. Using default port 8000")
-			return 8000
+			print(f"[Main] Invalid or missing port for {app_name} in config. Using default port {default_port}")
+			return default_port
 	else:
-		return 8000
+		return default_port
 
 
 # App init

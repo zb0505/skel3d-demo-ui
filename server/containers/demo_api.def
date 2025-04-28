@@ -31,7 +31,7 @@ From: ubuntu:22.04
 
 	# Start API service
 	cd /opt/demo_api
-	exec python3 main.py demo_api 8000
+	exec python3 main.py demo_api
 
 %runscript
 	# Init cache directories
@@ -74,8 +74,8 @@ OPTIONS:
 SERVICE MODE:
   apptainer instance start demo_api.sif demo-api-service
   
-  The container will start the API service on port 8000
-  Access the API at http://localhost:8000
+  The container will start the API service on the port defined in the .env file (default: 8000).
+  Access the API at http://localhost:{port}
 
 EXAMPLES:
   # Run the container with an interactive shell

@@ -68,7 +68,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 	
 	# Start API service
 	cd /opt/metrabs
-	exec python3 main.py metrabs_api 8002
+	exec python3 main.py metrabs_api
 
 %runscript
 	# Init cache directories
@@ -99,8 +99,8 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 DESCRIPTION:
   MeTRAbs is a state-of-the-art 3D human pose estimation model.
-  This container provides GPU-accelerated pose detection via an API.
-  Built with TensorFlow 2.12.0 and CUDA 11.8.
+  This container provides an API for generating 3D human pose estimates.
+  Used by the Skel3D demo app.
 
 USAGE:
   apptainer run [apptainer options] metrabs.sif [options]
@@ -114,8 +114,8 @@ OPTIONS:
 SERVICE MODE:
   apptainer instance start --nv metrabs.sif metrabs-service
   
-  The container will start the API service on port 8002
-  Access the API at http://localhost:8002
+  The container will start the API service on the port defined in the .env file (default: 8002).
+  Access the API at http://localhost:{port}
 
 EXAMPLES:
   # Run the container with an interactive shell

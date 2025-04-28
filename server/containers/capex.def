@@ -55,7 +55,7 @@ From: matanru/capex:latest
 
 	# Start API service
 	cd /opt/capex
-	exec python3 main.py capex_api 8004
+	exec python3 main.py capex_api
 
 %runscript
 	# Init cache directories
@@ -88,6 +88,7 @@ From: matanru/capex:latest
 
 DESCRIPTION:
   CapeX is a model for pose estimation.
+  This container provides an API for generating 3D human pose estimates.
   Used by the Skel3D demo app.
 
 USAGE:
@@ -102,8 +103,8 @@ OPTIONS:
 SERVICE MODE:
   apptainer instance start --nv capex.sif capex-service
   
-  The container will start the API service on port 8004
-  Access the API at http://localhost:8004
+  The container will start the API service on the port defined in the .env file (default: 8004).
+  Access the API at http://localhost:{port}
 
 EXAMPLES:
   # Run the container with an interactive shell
