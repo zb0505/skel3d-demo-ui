@@ -6,6 +6,7 @@ Common utils for APIs and testing
 # Imports
 import base64
 from io import BytesIO
+from typing import Literal
 from PIL import Image, ImageOps
 from pydantic import BaseModel, ValidationError
 
@@ -24,10 +25,14 @@ class Utils:
 		return b64
 
 	@staticmethod
-	def validate_schema(json_obj: dict, Schema: type[BaseModel]):
-		"""Validates the schema of the given JSON object against the provided Pydantic schema"""
+	def validate_schema(json_obj: dict, Schema: type[BaseModel], allow_none: bool = False) -> Literal[True] | tuple[Literal[False], str | None]:
+		"""Validates the schema of the given JSON object against the provided Pydantic schema. Does not allow None values by default"""
 		try:
 			Schema(**json_obj)
+			if not allow_none:
+				for key, value in json_obj.items():
+					if value is None:
+						return False, f"Schema validation failed: Value for key '{key}' is None"
 			return True
 		except ValidationError as e:
 			return False, f"Schema validation failed: {e}"

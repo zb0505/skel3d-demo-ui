@@ -42,6 +42,7 @@ class CapeXAPI:
 
 		# Run Skel3D prediction
 		points, output, _ = generate_skeleton(img, data.keypoints, data.skeleton)
+		if points.shape[0] == 0: return { "skeleton": [], "minmax": [], "original": [] }
 		minmax = np.vstack((points.min(axis=0), points.max(axis=0)), dtype=np.int64).T
 
 		# Return keypoints

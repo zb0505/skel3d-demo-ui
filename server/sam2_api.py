@@ -62,12 +62,20 @@ class SAM2API:
 		vbounds = np.where(np.any(output[:, :, 3] > 0, axis=1))[0][[0, -1]]
 		hbounds = np.where(np.any(output[:, :, 3] > 0, axis=0))[0][[0, -1]]
 		
-		return { "segmentation": f"data:image/png;base64,{segmb64}", "preview": f"data:image/png;base64,{prevb64}", "bbox": [
-			hbounds[0], # Left
-			vbounds[0], # Top
-			hbounds[1] - hbounds[0], # Width
-			vbounds[1] - vbounds[0] # Height
-		] }
+		return {
+			"segmentation": f"data:image/png;base64,{segmb64}",
+			"preview": f"data:image/png;base64,{prevb64}",
+			"bbox": [
+				hbounds[0], # Left
+				vbounds[0], # Top
+				hbounds[1] - hbounds[0], # Width
+				vbounds[1] - vbounds[0] # Height
+			]
+		} if len(vbounds) > 0 and len(hbounds) > 0 else {
+			"segmentation": f"data:image/png;base64,{segmb64}",
+			"preview": f"data:image/png;base64,{prevb64}",
+			"bbox": []
+		}
 
 
 # Create app instance and export it for testing
