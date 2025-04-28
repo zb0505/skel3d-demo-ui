@@ -63,9 +63,7 @@ From: nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 	
 	# Otherwise download it
 	else
-		#wget -O /opt/skel3d/skel3d_coord.ckpt "URL"
-		echo "TODO: insert URL and uncomment wget line"
-		exit -1
+		wget -O /opt/skel3d/skel3d_coord.ckpt "https://huggingface.co/skel3d/skel3d/resolve/main/skel3d_coord.ckpt"
 	fi
 
 	# Download SAM checkpoint

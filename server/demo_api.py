@@ -34,9 +34,9 @@ class BaseController:
 			raise HTTPException(status_code=401, detail="Unauthorized")
 
 	def query(self, endpoint: str, data: BaseModel):
-		"""Queries the API with the given data"""
+		"""Queries the API with the given data. Timeout is 45 seconds, if no response is received or if query failed, returns None"""
 		try:
-			resp = requests.post(f"http://{endpoint}/predict", json=data.model_dump(), timeout=30)
+			resp = requests.post(f"http://{endpoint}/predict", json=data.model_dump(), timeout=45)
 			return resp.json() if resp.ok else None
 		except RequestException:
 			return None

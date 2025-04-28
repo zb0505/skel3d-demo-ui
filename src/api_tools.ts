@@ -199,7 +199,7 @@ export default class API {
 		(path as string) = path.startsWith("/") ? path : `/${path}`
 		const apiUrl = this.apiURL.replace(/\/$/, "")
 		const timeoutController = new AbortController()
-		setTimeout(() => timeoutController.abort(), 30_000) // 30 seconds timeout
+		setTimeout(() => timeoutController.abort(), 45_000) // 45 seconds timeout
 		try {
 			const r = await fetch(apiUrl + path, {
 				headers: {
