@@ -10,7 +10,8 @@ import { AppContext } from "../contexts/AppContextProvider"
 interface FileUploadState {
 	inputUrl: string,
 	preview: string,
-	exampleShown: boolean
+	exampleShown: boolean,
+	previewUpdated: boolean
 }
 
 
@@ -38,7 +39,8 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 		this.state = this.stateCopy = {
 			inputUrl: "",
 			preview: "",
-			exampleShown: false
+			exampleShown: false,
+			previewUpdated: false
 		}
 	}
 	// #endregion
@@ -91,7 +93,8 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 		if (
 			this.context.prevState.reset === this.context.reset &&
 			this.context.prevState.step === this.context.step &&
-			prevState.preview === this.state.preview
+			prevState.preview === this.state.preview &&
+			!this.state.previewUpdated // Avoids bugs that happen when the model gives the same preview
 		) return
 
 		// Handle resetting data
@@ -100,6 +103,8 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 			this.updateState({
 				inputUrl: "",
 				preview: "",
+				exampleShown: false,
+				previewUpdated: false
 			})
 			this.context.updateState({ keypoints: "" })
 		}
@@ -108,6 +113,7 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 		else if (this.context.step === 0) {
 			const forwardEnabled = !!(this.stateCopy.inputUrl && this.stateCopy.preview &&
 				(API.skeletonModel !== "capex" || this.context.updatedState.keypoints))
+			this.updateState({ previewUpdated: false })
 			this.context.updateForwardBtn({
 				text: "Next",
 				enabled: forwardEnabled
@@ -157,7 +163,7 @@ export default class FileUpload extends Component<unknown, FileUploadState> {
 						<input className="form-control mb-3" type="file" id="inputImg"
 							accept="image/jpeg, image/png" ref={input => this.fileInput = input} />
 						<KeypointMarker currentImage={this.state.inputUrl} reset={this.context.reset}
-							onPreviewUpdated={preview => this.updateState({ preview })}>
+							onPreviewUpdated={preview => this.updateState({ preview, previewUpdated: true })}>
 							<img id="preview" className={(this.context.loading ? "placeholder " : "") + "preview"}
 								src={this.state.preview || this.state.inputUrl || "/src/assets/transparent.png"} />
 						</KeypointMarker>

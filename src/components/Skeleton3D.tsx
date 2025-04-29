@@ -195,10 +195,14 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 		const source = new Three.Matrix4().extractRotation(sourceExtrinsic)
 		const target = new Three.Matrix4().extractRotation(targetExtrinsic)
 
-		// Calculate and return relative rotation
+		// Calculate relative rotation
 		const sourceInv = source.clone().invert()
 		const relativeRot = new Three.Matrix4().multiplyMatrices(sourceInv, target)
-		const euler = new Three.Euler().setFromRotationMatrix(relativeRot)
+
+		// Use XZY order for Euler extraction as OrbitControls rotates around X and Y only (thus avoiding gimbal lock)
+		const euler = new Three.Euler().setFromRotationMatrix(relativeRot, "XZY")
+
+		// Return the relative rotation angles
 		if (API.isDebug) console.log("[Skeleton3D] Relative rotation (OpenCV convention):",
 			"\n  X:", euler.x * 180 / Math.PI,
 			"\n  Y:", -euler.y * 180 / Math.PI,
@@ -312,7 +316,7 @@ export default class Skeleton3D extends Component<unknown, Skeleton3DState> {
 
 		// Set camera properties and update controls
 		this.camera!.position.set(lookX, -lookY, lookZ - maxDist)
-		this.camera!.rotation.set(this.cameraRotation?.x ?? 0, this.cameraRotation?.y ?? 0, this.cameraRotation?.z ?? 0)
+		this.camera!.rotation.copy(this.cameraRotation!)
 		this.camera!.lookAt(lookX, lookY, lookZ)
 		this.controls!.update()
 		this.srcCamera = this.getExtrinsicMatrix(this.camera!)
