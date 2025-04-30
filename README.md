@@ -1,50 +1,31 @@
-# React + TypeScript + Vite
+# Skel3D demo app
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repo contains the UI code and server-side code required to run the Skel3D demo app.
 
-Currently, two official plugins are available:
+## Building
 
--   [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
--   [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Building the server-side containers
 
-## Expanding the ESLint configuration
+Server-side code uses Apptainer, make sure the host has it installed.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+Create a copy of `.env.example` named `.env` in the `server` folder and run these commands inside that folder:
 
--   Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-	languageOptions: {
-		// other options...
-		parserOptions: {
-			project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-			tsconfigRootDir: import.meta.dirname,
-		},
-	},
-})
+```bash
+./install.sh
+./start.sh
 ```
 
--   Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
--   Optionally add `...tseslint.configs.stylisticTypeChecked`
--   Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+This will build the Apptainer container SIF files and start them as services.  
+Make sure port 8000 is available externally, that is the default port for the main API.  
+To modify the default port, edit the `.env` file.
 
-```js
-// eslint.config.js
-import react from "eslint-plugin-react"
+### Building the UI
 
-export default tseslint.config({
-	// Set the react version
-	settings: { react: { version: "18.3" } },
-	plugins: {
-		// Add the react plugin
-		react,
-	},
-	rules: {
-		// other rules...
-		// Enable its recommended rules
-		...react.configs.recommended.rules,
-		...react.configs["jsx-runtime"].rules,
-	},
-})
+To build the UI, fill out the `.env` file based on the provided `.env.example` and run these commands:
+
+```bash
+npm install
+npm run build
 ```
+
+Once they complete, deploy the `dist` folder to any webhost.
