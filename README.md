@@ -8,7 +8,9 @@ This repo contains the UI code and server-side code required to run the Skel3D d
 
 Server-side code uses Apptainer, make sure the host has it installed.
 
-Create a copy of `.env.example` named `.env` in the `server` folder and run these commands inside that folder:
+Create a copy of `.env.example` in the `server` folder, rename it to `.env` and
+make sure the assigned GPUs are correct for the models in the file.  
+Then run these commands inside the `server` folder:
 
 ```bash
 ./install.sh
